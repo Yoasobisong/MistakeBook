@@ -1,0 +1,208 @@
+/* ============================================================
+   AI 相关 UI：设置分页、模型槽配置、任务队列进度
+   ============================================================ */
+
+/* ---------- 设置弹窗分页 ---------- */
+.tabs{display:flex;gap:2px;padding:0 18px;border-bottom:1px solid var(--rule);background:var(--card)}
+.tabs button{
+  padding:9px 13px;font-size:13px;color:var(--ink3);border-bottom:2px solid transparent;
+  margin-bottom:-1px;transition:.13s;
+}
+.tabs button:hover{color:var(--ink2)}
+.tabs button.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.tabpane{display:none}
+.tabpane.on{display:block}
+
+/* ---------- 模型槽配置 ---------- */
+.slotcfg{border:1px solid var(--rule);border-radius:var(--r);padding:13px 14px;margin-bottom:12px;background:var(--raised)}
+.slotcfg .hd{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.slotcfg .hd b{font-size:13px;font-weight:650}
+.slotcfg .hd .spacer{flex:1}
+.slotcfg .desc{font-size:11.5px;color:var(--ink3);line-height:1.7;margin-bottom:10px}
+.slotcfg .row{display:flex;gap:8px;align-items:flex-end;margin-bottom:8px}
+.slotcfg .row > div{flex:1;min-width:0}
+.slotcfg .row .narrow{flex:0 0 132px}
+.badge{
+  font-size:10.5px;padding:1px 6px;border-radius:4px;background:var(--accent-weak);
+  color:var(--accent);font-weight:600;letter-spacing:.02em;
+}
+.badge.vis{background:var(--amber-weak);color:var(--amber)}
+
+/* 槽状态：一眼看出哪个能用 */
+.slotcfg .st{font-size:10.5px;padding:1px 7px;border-radius:999px;font-weight:600}
+.slotcfg .st.ok{background:var(--green-weak);color:var(--green)}
+.slotcfg .st.err{background:var(--red-weak);color:var(--red)}
+.slotcfg .st.unk{background:var(--sunken);color:var(--ink3)}
+.slotcfg .st.none{background:var(--sunken);color:var(--ink3)}
+
+/* 连接测试结果 */
+.testres{font-size:12px;line-height:1.7;margin-top:6px;padding:7px 10px;border-radius:6px;word-break:break-all}
+.testres.ok{background:var(--green-weak);color:var(--green)}
+.testres.err{background:var(--red-weak);color:var(--red)}
+.testres.wait{background:var(--sunken);color:var(--ink3)}
+
+/* 预设快填 */
+.presets{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:9px}
+.presets button{font-size:11.5px;padding:2px 8px;border-radius:5px;background:var(--sunken);color:var(--ink2)}
+.presets button:hover{background:var(--accent-weak);color:var(--accent)}
+
+/* 拉取回来的模型列表：datalist 的下拉在有值时会被自身过滤掉，改用可点的芯片 */
+.modellist{display:flex;flex-wrap:wrap;gap:5px;margin:2px 0 8px}
+.modellist button{
+  font-size:11.5px;padding:3px 9px;border-radius:5px;font-family:var(--mono);
+  border:1px solid var(--rule);background:var(--card);color:var(--ink2);
+}
+.modellist button:hover{border-color:var(--accent);color:var(--accent)}
+.modellist button.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
+
+/* ---------- 顶栏任务队列进度 ---------- */
+.aiprog{
+  display:flex;align-items:center;gap:8px;height:28px;padding:0 10px;border-radius:7px;
+  background:var(--accent-weak);color:var(--accent);font-size:12.5px;white-space:nowrap;
+}
+.aiprog .bar{width:54px;height:4px;border-radius:2px;background:color-mix(in srgb,var(--accent) 22%,transparent);overflow:hidden}
+.aiprog .bar i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.aiprog .spin{
+  width:11px;height:11px;flex:0 0 11px;border-radius:50%;
+  border:2px solid color-mix(in srgb,var(--accent) 28%,transparent);border-top-color:var(--accent);
+}
+.aiprog .x{color:var(--accent);opacity:.6;font-size:14px;line-height:1;padding:0 2px}
+.aiprog .x:hover{opacity:1}
+.aiprog.err{background:var(--red-weak);color:var(--red)}
+
+/* ---------- 右栏 AI 按钮 ---------- */
+.aihint{font-size:11px;color:var(--ink3);line-height:1.65;margin-top:6px}
+.aierr{font-size:11.5px;color:var(--red);line-height:1.7;margin-top:6px;word-break:break-all}
+
+/* ---------- 对话区 ---------- */
+.slot.chat .chat-log{
+  max-height:420px;overflow-y:auto;padding:12px 14px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.msg{display:flex}
+.msg.user{justify-content:flex-end}
+.msg .bub{
+  max-width:82%;padding:8px 11px;border-radius:10px;font-size:13px;line-height:1.75;
+  word-break:break-word;
+}
+.msg.user .bub{background:var(--accent);color:var(--on-accent);border-bottom-right-radius:3px;white-space:pre-wrap}
+.msg.assistant .bub{background:var(--sunken);color:var(--ink);border-bottom-left-radius:3px}
+.msg.pending .bub{color:var(--ink3);font-style:italic}
+.msg .bub p{margin:0 0 6px}
+.msg .bub p:last-child{margin-bottom:0}
+.msg .bub h4{margin:8px 0 4px;font-size:12.5px}
+.msg .bub h4:first-child{margin-top:0}
+.msg .bub .katex-display{margin:8px 0}
+
+.chat-in{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--rule2);align-items:flex-end}
+.chat-in textarea{
+  flex:1;resize:none;border:1px solid var(--rule);border-radius:8px;padding:7px 10px;
+  font-size:13px;line-height:1.6;background:var(--card);color:var(--ink);font-family:inherit;
+}
+.chat-in textarea:focus{outline:none;border-color:var(--accent)}
+.chat-in textarea:disabled{background:var(--sunken);color:var(--ink3)}
+
+/* ---------- 目录导入 ---------- */
+.toc-wrap{display:flex;gap:14px;min-height:380px}
+.toc-left,.toc-right{flex:1;min-width:0;display:flex;flex-direction:column}
+.toc-input{
+  flex:1;min-height:300px;resize:none;border:1px solid var(--rule);border-radius:var(--r);
+  padding:10px 12px;font-family:var(--mono);font-size:12px;line-height:1.7;
+  background:var(--card);color:var(--ink);
+}
+.toc-input:focus{outline:none;border-color:var(--accent)}
+.toc-bar{display:flex;align-items:center;gap:7px;margin-top:8px}
+.toc-status{font-size:11.5px;color:var(--ink3);flex:1;min-width:0}
+.toc-preview{
+  flex:1;min-height:300px;overflow-y:auto;border:1px solid var(--rule);
+  border-radius:var(--r);background:var(--card);padding:6px 0;
+}
+.toc-empty{padding:14px;font-size:12px;color:var(--ink3);text-align:center}
+.toc-row{display:flex;align-items:center;gap:8px;padding:3px 8px 3px 0;font-size:12.5px}
+.toc-row:hover{background:var(--sunken)}
+.toc-row .lv{font-family:var(--mono);font-size:10px;color:var(--ink3);flex:0 0 18px}
+.toc-row .tt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.toc-row .x{opacity:0;color:var(--ink3);font-size:11px;padding:0 3px}
+.toc-row:hover .x{opacity:1}
+.toc-row .x:hover{color:var(--red)}
+
+/* 卡片上的 LaTeX 正文预览 */
+.c-tex{
+  padding:10px 12px;font-size:12.5px;line-height:1.75;color:var(--ink2);
+  max-height:132px;overflow:hidden;position:relative;
+  border-bottom:1px solid var(--rule2);
+}
+.grid.sm .c-tex{max-height:96px;font-size:12px}
+.grid.lg .c-tex{max-height:190px;font-size:13px}
+/* 截断处渐隐，暗示下面还有内容 */
+.c-tex::after{
+  content:'';position:absolute;left:0;right:0;bottom:0;height:26px;pointer-events:none;
+  background:linear-gradient(to bottom,transparent,var(--card));
+}
+.c-tex p{margin:0 0 5px}
+.c-tex p:last-child{margin-bottom:0}
+.c-tex .katex{font-size:1em}
+.c-tex .katex-display{margin:6px 0}
+
+/* ---------- 槽位正文：文字版是主体 ---------- */
+.lx-b{padding:13px 15px;font-size:14px;line-height:1.9;color:var(--ink)}
+.lx-b.empty{padding:11px 15px 13px}
+.lx-b .ph{font-size:12.5px;color:var(--ink3)}
+.lx-b .err{font-size:12.5px;color:var(--red)}
+.lx-b.streaming{white-space:pre-wrap;font-family:var(--mono);font-size:12.5px;line-height:1.75;color:var(--ink2);max-height:420px;overflow-y:auto}
+.lx-b p{margin:0 0 9px}
+.lx-b p:last-child{margin-bottom:0}
+.lx-b ol,.lx-b ul{margin:0 0 9px;padding-left:1.6em}
+.lx-b li{margin-bottom:3px}
+.lx-b .katex-display{margin:11px 0}
+.lx-edit{
+  width:100%;min-height:220px;border:0;outline:none;resize:vertical;background:transparent;
+  font-family:var(--mono);font-size:12.5px;line-height:1.8;color:var(--ink);
+}
+
+/* 原始截图的折叠条 */
+.shotfold{
+  display:block;width:100%;text-align:left;padding:7px 15px;font-size:11.5px;
+  color:var(--ink3);border-top:1px solid var(--rule2);letter-spacing:.02em;
+}
+.shotfold:hover{color:var(--accent);background:var(--sunken)}
+.shotfold.on{color:var(--ink2)}
+
+/* ---------- 右栏 AI 建议卡片 ---------- */
+.aicard{
+  border:1px solid var(--accent);border-radius:var(--r);padding:10px 11px 11px;
+  background:var(--accent-weak);margin-bottom:14px;
+}
+.aicard.idle{border-color:var(--rule);background:var(--card)}
+.aicard .mt-l{margin-bottom:8px;display:flex;align-items:center}
+.aicard .conf{margin-left:auto;font-family:var(--mono);font-size:10.5px;opacity:.7;letter-spacing:0}
+.aisum{font-size:12.5px;line-height:1.65;color:var(--ink);margin-bottom:9px;font-weight:600}
+.airow{display:flex;gap:7px;margin-bottom:9px}
+.airow .k{flex:0 0 30px;font-size:11px;color:var(--ink3);padding-top:3px}
+.airow .v{flex:1;min-width:0}
+.airow .why{font-size:11px;color:var(--ink3);line-height:1.6;margin-top:4px}
+.aicard .pill{
+  font-size:11.5px;padding:3px 9px;border-radius:6px;border:1px solid var(--accent);
+  background:var(--card);color:var(--accent);font-weight:600;
+}
+.aicard .pill:hover{background:var(--accent);color:var(--on-accent)}
+.ainote{
+  background:var(--card);border-radius:6px;padding:8px 10px;font-size:12px;line-height:1.7;
+  max-height:240px;overflow-y:auto;margin-bottom:6px;
+}
+.ainote h4{margin:9px 0 4px;font-size:11.5px;color:var(--accent)}
+.ainote h4:first-child{margin-top:0}
+.ainote p{margin:0 0 6px}
+.ainote mark{background:var(--mark);padding:0 2px;border-radius:3px}
+.aicard .tip{font-size:11.5px;color:var(--ink3);line-height:1.7;margin-top:6px}
+.aicard .aierr{font-size:11.5px;color:var(--red);line-height:1.7;margin-top:7px;word-break:break-all}
+.aifoot{
+  display:flex;align-items:center;gap:8px;margin-top:9px;padding-top:8px;
+  border-top:1px solid color-mix(in srgb,var(--accent) 22%,transparent);
+  font-size:11px;color:var(--ink3);
+}
+.aifoot button{font-size:11px;color:var(--accent);text-decoration:underline}
+.aifoot span{margin-left:auto;font-family:var(--mono);opacity:.7}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin .9s linear infinite;transform-origin:center}

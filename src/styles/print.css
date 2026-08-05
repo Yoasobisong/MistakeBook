@@ -1,0 +1,44 @@
+/* ---------- 打印 / 导出 PDF ---------- */
+#printRoot{display:none}
+@media print{
+  /* 纸永远是白的：暗色模式下 --ink 接近白色，直接打会变成白纸白字。
+     这里把关键令牌强制拨回亮色；写 [data-theme="dark"] 是为了压过 tokens.css 的同名规则。 */
+  :root,[data-theme="dark"]{
+    color-scheme:light;
+    --ink:#14202A; --ink2:#55636F; --ink3:#8B98A3;
+    --paper:#FFFFFF; --card:#FFFFFF; --raised:#FFFFFF; --sunken:#F1F5F6;
+    --rule:#E2E8EB; --rule2:#EFF3F4;
+    --accent:#0E6A78; --red:#BE3A32; --mark:#FBEEA8;
+    /* 打印永远是白纸：深底浅字的截图要反相，否则整片黑既费墨又看不清 */
+    --inv-light:none;
+    --inv-dark:invert(1) hue-rotate(180deg);
+  }
+  body{overflow:visible;background:#fff;color:#14202A}
+  .shell,.mask,.lightbox,.toast{display:none !important}
+  #printRoot{display:block !important}
+  @page{size:A4;margin:14mm 12mm}
+}
+.pr-head{border-bottom:2px solid #14202A;padding-bottom:7px;margin-bottom:14px}
+.pr-head h1{margin:0;font-size:17px;letter-spacing:.06em}
+.pr-head .m{font-family:var(--mono);font-size:10.5px;color:#666;margin-top:4px}
+.pr-ch{
+  font-size:13px;font-weight:700;margin:16px 0 9px;padding:4px 0 4px 9px;
+  border-left:4px solid #14202A;background:#F2F4F5;break-after:avoid;
+}
+.pr-item{break-inside:avoid;page-break-inside:avoid;margin-bottom:13px;border:1px solid #D8DEE1;border-radius:6px;padding:9px 11px}
+.pr-t{display:flex;align-items:baseline;gap:8px;font-size:12px;margin-bottom:6px}
+.pr-t .n{font-family:var(--mono);font-weight:700}
+.pr-t .d{font-family:var(--mono);color:#777;font-size:10.5px;margin-left:auto}
+.pr-item img{max-width:100%;display:block;margin:5px 0;border:1px solid #E6EAEC;border-radius:3px}
+.pr-note{font-size:11.5px;line-height:1.7;margin-top:6px;padding-top:6px;border-top:1px dashed #D8DEE1}
+.pr-tags{font-size:10.5px;color:#8A3B34;margin-top:4px}
+
+/* 文字版正文：可选中、可搜索，体积也比整版截图小得多 */
+.pr-tex{font-size:11.5px;line-height:1.8;margin:4px 0 6px;color:#111}
+.pr-tex p{margin:0 0 5px}
+.pr-tex p:last-child{margin-bottom:0}
+.pr-tex ol,.pr-tex ul{margin:0 0 5px;padding-left:1.6em}
+.pr-tex li{margin-bottom:2px}
+.pr-tex .katex{font-size:1.02em}
+.pr-tex .katex-display{margin:7px 0}
+.pr-sep{font-size:10.5px;color:#777;margin-top:7px}

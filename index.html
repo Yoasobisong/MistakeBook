@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>错题本</title>
+<script>
+// 首屏防闪：设置存在 IndexedDB 里读不及，先用 localStorage 的镜像值定主题
+(function () {
+  try {
+    var m = localStorage.getItem('mb.theme') || 'auto'
+    var t = m === 'auto'
+      ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+      : m
+    document.documentElement.dataset.theme = t
+    document.documentElement.style.colorScheme = t
+  } catch (e) {}
+})()
+</script>
+</head>
+<body>
+<div class="shell">
+
+  <header class="top">
+    <div class="brand"><b>错题本</b><span class="mono" id="brandStat"></span></div>
+    <button class="bookpick" id="bookPick" title="切换 / 管理书籍">
+      <span class="nm" id="bookName">未选择</span>
+      <span class="ct" id="bookCount"></span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+
+    <div class="search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2"/></svg>
+      <input class="inp" id="q" type="search" placeholder="搜标题、批注、标签、来源…   /" autocomplete="off">
+    </div>
+
+    <div class="spacer"></div>
+    <div id="aiSlot"></div>
+    <button class="btn" id="btnStats" title="统计看板">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>统计
+    </button>
+    <button class="btn" id="btnPrint" title="导出打印版 / PDF">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M8 14h8v7H8z"/></svg>导出
+    </button>
+    <button class="btn icon" id="btnTheme" title="切换主题"></button>
+    <button class="btn icon" id="btnSet" title="设置与备份">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h9M17 18h3"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="15" cy="18" r="2"/></svg>
+    </button>
+  </header>
+
+  <div class="body">
+    <aside class="rail">
+      <div class="rail-h">
+        <span>大纲</span>
+        <span style="display:flex;gap:2px">
+          <button class="btn icon ghost" id="btnImportToc" title="从目录批量建章节">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 6h10M4 12h16M4 18h13M18 4v5M20.5 6.5h-5"/></svg>
+          </button>
+          <button class="btn icon ghost" id="btnAddCh" title="新建章节">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </span>
+      </div>
+      <div class="tree scroll" id="tree"></div>
+      <div class="filters scroll" id="filters"></div>
+    </aside>
+
+    <main class="main">
+
+      <!-- 列表 -->
+      <section id="viewList" style="flex:1;display:flex;flex-direction:column;min-height:0">
+        <div class="bar">
+          <div class="crumb" id="crumb"></div>
+          <span class="count" id="listCount"></span>
+          <div class="spacer"></div>
+          <div class="seg" id="sortSeg">
+            <button data-s="new">最新</button><button data-s="old">最早</button>
+            <button data-s="hard">最难</button><button data-s="weak">最生</button>
+          </div>
+          <div class="seg" id="sizeSeg">
+            <button data-z="list" title="单列">☰</button><button data-z="md" title="网格">▦</button><button data-z="lg" title="大图">▣</button>
+          </div>
+          <button class="btn primary" id="btnNew">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>新建题目
+          </button>
+        </div>
+        <div class="canvas scroll" id="canvas"><div class="grid" id="cards"></div></div>
+      </section>
+
+      <!-- 详情 -->
+      <section id="viewDetail" class="hidden" style="flex:1;display:flex;flex-direction:column;min-height:0">
+        <div class="bar">
+          <button class="btn" id="btnBack">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><path d="M15 5l-7 7 7 7"/></svg>返回
+          </button>
+          <button class="btn icon" id="btnPrev" title="上一题 ←"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <button class="btn icon" id="btnNext" title="下一题 →"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><path d="M9 5l7 7-7 7"/></svg></button>
+          <span class="count" id="detPos"></span>
+          <div class="spacer"></div>
+          <button class="btn" id="btnDetPrint">打印本题</button>
+          <button class="btn danger" id="btnDetDel">删除</button>
+        </div>
+        <div class="det">
+          <div class="det-main scroll" id="detMain"></div>
+          <div class="det-side scroll" id="detSide"></div>
+        </div>
+      </section>
+
+      <!-- 统计 -->
+      <section id="viewStats" class="hidden" style="flex:1;display:flex;flex-direction:column;min-height:0">
+        <div class="bar">
+          <button class="btn" id="btnStatsBack">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><path d="M15 5l-7 7 7 7"/></svg>返回
+          </button>
+          <div class="crumb"><b>统计看板</b><span class="sl" id="statsBook"></span></div>
+          <div class="spacer"></div>
+          <div class="seg" id="scopeSeg">
+            <button data-sc="book">本书</button><button data-sc="all">全部书籍</button>
+          </div>
+        </div>
+        <div class="stats scroll"><div class="st-wrap" id="statsWrap"></div></div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<div id="layer"></div>
+<div id="printRoot"></div>
+<input type="file" id="filePick" accept="image/*" multiple class="hidden">
+<input type="file" id="jsonPick" accept="application/json,.json" class="hidden">
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

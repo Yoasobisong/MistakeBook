@@ -1,0 +1,31 @@
+/* ---------- 统计看板 ---------- */
+.stats{flex:1;min-height:0;padding:20px;background:var(--paper)}
+.st-wrap{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--card);border:1px solid var(--rule);border-radius:var(--r);padding:15px 17px;box-shadow:var(--sh)}
+.panel h3{margin:0 0 12px;font-size:13px;font-weight:650;letter-spacing:.06em;color:var(--ink)}
+.panel h3 span{font-weight:400;color:var(--ink3);font-size:11.5px;margin-left:7px;letter-spacing:0}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.kpi{background:var(--card);border:1px solid var(--rule);border-radius:var(--r);padding:12px 14px;box-shadow:var(--sh)}
+.kpi .v{font-family:var(--mono);font-size:25px;font-weight:600;line-height:1.15;letter-spacing:-.02em}
+.kpi .l{font-size:11.5px;color:var(--ink3);margin-top:3px}
+.kpi.red .v{color:var(--red)} .kpi.green .v{color:var(--green)} .kpi.acc .v{color:var(--accent)}
+.brow{display:grid;grid-template-columns:96px 1fr 46px;align-items:center;gap:10px;margin-bottom:7px;font-size:12.5px}
+.brow .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink2)}
+.brow .tr{height:16px;background:var(--sunken);border-radius:4px;overflow:hidden;display:flex}
+.brow .fl{height:100%;background:var(--accent);transition:width .35s}
+.brow .fl.r{background:var(--red)}
+.brow .vv{font-family:var(--mono);font-size:11.5px;color:var(--ink3);text-align:right}
+.heat{display:flex;flex-direction:column;gap:3px}
+.heat-row{display:grid;grid-template-columns:110px 1fr;gap:9px;align-items:center}
+.heat-row .hn{font-size:12px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* min-width:0 不能少：grid 子项默认 min-width:auto，不加会被内容撑破轨道 */
+.heat-cells{display:flex;gap:7px;align-items:center;min-width:0}
+.htrack{flex:1;min-width:0;display:flex;background:var(--sunken);border-radius:3px;overflow:hidden}
+.hc{height:19px;display:flex;overflow:hidden;min-width:2px}
+.hc i{display:block;height:100%}
+.hnum{flex:0 0 auto;font-family:var(--mono);font-size:11px;color:var(--ink3)}
+.spark{display:flex;align-items:flex-end;gap:2px;height:64px}
+.spark i{flex:1;background:var(--accent-weak);border-radius:2px 2px 0 0;min-height:2px;position:relative}
+.spark i.hot{background:var(--accent)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--ink3);margin-top:9px}
+.legend b{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:-1px}

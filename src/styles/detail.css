@@ -1,0 +1,119 @@
+/* ---------- 详情骨架 ---------- */
+.det{flex:1;min-height:0;display:flex;background:var(--paper)}
+.det-main{flex:1;min-width:0;padding:18px 20px 60px}
+.det-side{
+  width:250px;flex:0 0 250px;background:var(--card);border-left:1px solid var(--rule);
+  padding:14px 14px 40px;
+}
+.det-wrap{max-width:900px;margin:0 auto}
+.det-h{display:flex;align-items:flex-start;gap:10px;margin-bottom:14px}
+.det-h .tt{flex:1;min-width:0}
+.det-title{
+  font-size:19px;font-weight:650;line-height:1.4;border:1px solid transparent;border-radius:7px;
+  padding:2px 6px;margin:-2px -6px 3px;width:100%;background:transparent;
+}
+.det-title:hover{background:var(--hover)}
+.det-title:focus{background:var(--card);border-color:var(--accent);outline:none}
+.det-sub{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:11.5px;color:var(--ink3);padding-left:0}
+
+/* ---------- 图片槽位 ---------- */
+.slot{margin-bottom:16px}
+.slot-h{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.slot-h .nm{font-size:12px;color:var(--ink2);font-weight:600;letter-spacing:.06em}
+.slot-h .hint{font-size:11.5px;color:var(--ink3)}
+.slot-h .spacer{flex:1}
+.slot.armed .drop-z{border-color:var(--accent);background:var(--accent-weak)}
+.slot.armed .nm{color:var(--accent)}
+.drop-z{
+  border:1.5px dashed var(--rule);border-radius:var(--r);background:var(--card);
+  padding:14px;text-align:center;color:var(--ink3);font-size:12.5px;transition:.13s;cursor:pointer;
+}
+.drop-z:hover{border-color:var(--rule-h);color:var(--ink2);background:var(--raised)}
+.drop-z.over{border-color:var(--accent);background:var(--accent-weak);color:var(--accent)}
+.shots{display:flex;flex-direction:column;gap:9px}
+.shot{
+  position:relative;background:var(--card);border:1px solid var(--rule);border-radius:var(--r);
+  overflow:hidden;box-shadow:var(--sh);
+}
+.shot img{display:block;width:100%;cursor:zoom-in}
+.shot-t{
+  position:absolute;top:7px;right:7px;display:flex;gap:4px;opacity:0;transition:.13s;
+}
+.shot:hover .shot-t{opacity:1}
+.shot-t .btn{background:var(--card);box-shadow:var(--sh)}
+.shot-cap{
+  font-size:12px;color:var(--ink2);padding:5px 9px;border-top:1px solid var(--rule2);background:var(--raised);
+}
+.fold{
+  display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:11px;
+  border:1px dashed var(--rule);border-radius:var(--r);color:var(--ink2);background:var(--card);font-size:13px;
+}
+.fold:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-weak)}
+
+/* ---------- 批注 ---------- */
+.note-h{display:flex;align-items:center;gap:6px;margin-bottom:7px;flex-wrap:wrap}
+.note-h .spacer{flex:1}
+.snip{
+  height:23px;padding:0 8px;border-radius:6px;border:1px solid var(--rule);background:var(--card);
+  font-size:11.5px;color:var(--ink2);
+}
+.snip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-weak)}
+#noteEdit{
+  width:100%;min-height:200px;border:1px solid var(--rule);border-radius:var(--r);padding:12px 14px;
+  background:var(--card);line-height:1.8;font-size:13.5px;resize:vertical;
+  font-family:var(--sans);
+}
+#noteEdit:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-weak)}
+.note-view{
+  border:1px solid var(--rule);border-radius:var(--r);padding:13px 16px;background:var(--card);
+  line-height:1.85;font-size:13.5px;min-height:56px;cursor:text;
+}
+.note-view:hover{border-color:var(--rule-h)}
+.note-view.ph{color:var(--ink3);cursor:text}
+.note-view h4{margin:14px 0 6px;font-size:13px;color:var(--accent);letter-spacing:.04em}
+.note-view h4:first-child{margin-top:0}
+.note-view p{margin:0 0 8px}
+.note-view ul,.note-view ol{margin:0 0 8px;padding-left:20px}
+.note-view li{margin:2px 0}
+.note-view code{font-family:var(--mono);font-size:12.5px;background:var(--sunken);padding:1px 5px;border-radius:4px}
+.note-view mark{background:var(--mark);padding:0 2px;border-radius:3px}
+.note-view blockquote{
+  margin:8px 0;padding:4px 0 4px 12px;border-left:3px solid var(--red-weak);color:var(--ink2);
+}
+.note-view strong{font-weight:650}
+.note-view hr{border:0;border-top:1px solid var(--rule);margin:12px 0}
+
+/* ---------- 侧栏元信息 ---------- */
+.mt{margin-bottom:15px}
+.mt-l{font-size:11.5px;color:var(--ink3);letter-spacing:.1em;margin-bottom:7px}
+.dsel{display:flex;gap:4px}
+.dsel button{
+  flex:1;height:29px;border:1px solid var(--rule);border-radius:6px;font-family:var(--mono);
+  font-size:12px;color:var(--ink2);background:var(--card);
+}
+.dsel button:hover{border-color:var(--rule-h)}
+.dsel button.on{color:var(--on-accent);border-color:transparent;font-weight:700}
+.dsel button.on[data-v="1"]{background:var(--d1)} .dsel button.on[data-v="2"]{background:var(--d2)}
+.dsel button.on[data-v="3"]{background:var(--d3)} .dsel button.on[data-v="4"]{background:var(--d4)}
+.dsel button.on[data-v="5"]{background:var(--d5)}
+.msel{display:flex;gap:4px}
+.msel button{flex:1;height:29px;border:1px solid var(--rule);border-radius:6px;font-size:12.5px;color:var(--ink2);background:var(--card)}
+.msel button.on[data-v="0"]{background:var(--red-weak);border-color:var(--red-line);color:var(--red);font-weight:600}
+.msel button.on[data-v="1"]{background:var(--amber-weak);border-color:var(--amber-line);color:var(--amber);font-weight:600}
+.msel button.on[data-v="2"]{background:var(--green-weak);border-color:var(--green-line);color:var(--green);font-weight:600}
+.tagbox{display:flex;flex-wrap:wrap;gap:5px}
+.tagbox .t{
+  display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:2px 5px 2px 8px;border-radius:6px;
+  background:var(--red-weak);color:var(--red);
+}
+.tagbox.k .t{background:var(--accent-weak);color:var(--accent)}
+.tagbox .t button{color:inherit;opacity:.5;font-size:13px;line-height:1;padding:0 1px}
+.tagbox .t button:hover{opacity:1}
+.tagbox .add{
+  font-size:12px;padding:2px 8px;border-radius:6px;border:1px dashed var(--rule);color:var(--ink3);
+}
+.tagbox .add:hover{border-color:var(--accent);color:var(--accent)}
+.sugg{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.sugg button{font-size:11.5px;padding:2px 7px;border-radius:5px;background:var(--sunken);color:var(--ink2)}
+.sugg button:hover{background:var(--red-weak);color:var(--red)}
+.sugg.k button:hover{background:var(--accent-weak);color:var(--accent)}

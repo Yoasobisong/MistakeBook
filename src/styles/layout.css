@@ -1,0 +1,37 @@
+/* ---------- 顶栏 ---------- */
+.top{
+  height:52px;flex:0 0 52px;display:flex;align-items:center;gap:10px;padding:0 14px;
+  background:var(--card);border-bottom:1px solid var(--rule);position:relative;z-index:30;
+}
+.brand{display:flex;align-items:baseline;gap:8px;padding-right:4px;user-select:none}
+.brand b{font-size:15.5px;font-weight:700;letter-spacing:.06em}
+.brand span{font-family:var(--mono);font-size:10.5px;color:var(--ink3);letter-spacing:.1em}
+.bookpick{
+  display:flex;align-items:center;gap:7px;height:32px;padding:0 10px;border-radius:8px;
+  border:1px solid var(--rule);max-width:230px;
+}
+.bookpick:hover{background:var(--raised);border-color:var(--rule-h)}
+.bookpick .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;font-size:13.5px}
+.bookpick .ct{font-family:var(--mono);font-size:11px;color:var(--ink3)}
+.search{position:relative;flex:1;max-width:380px;margin-left:2px}
+.search .inp{padding-left:29px;height:32px;background:var(--sunken)}
+.search .inp:focus{background:var(--card)}
+.search svg{position:absolute;left:9px;top:9px;color:var(--ink3);pointer-events:none}
+.top .spacer{flex:1}
+
+/* ---------- 布局骨架 ---------- */
+.shell{display:flex;flex-direction:column;height:100%}
+.body{flex:1;display:flex;min-height:0}
+.rail{
+  width:var(--rail);flex:0 0 var(--rail);background:var(--card);border-right:1px solid var(--rule);
+  display:flex;flex-direction:column;min-height:0;
+}
+.rail-h{
+  display:flex;align-items:center;justify-content:space-between;padding:13px 14px 7px;
+  font-size:11.5px;color:var(--ink3);letter-spacing:.12em;
+}
+.rail-h .btn.icon{width:22px;height:22px}
+.main{flex:1;min-width:0;display:flex;flex-direction:column;position:relative}
+
+/* Ctrl+滚轮缩放：只作用于正文区，顶栏与左右栏保持原尺寸，不跟着一起抖 */
+#detMain,#cards{zoom:var(--zoom,1)}

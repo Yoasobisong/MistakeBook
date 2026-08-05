@@ -1,0 +1,54 @@
+/* ---------- 遮罩 / 弹窗 ---------- */
+.mask{position:fixed;inset:0;background:rgba(19,29,37,.42);z-index:60;display:flex;align-items:center;justify-content:center;padding:24px}
+.modal{
+  background:var(--card);border-radius:12px;box-shadow:var(--sh2);width:100%;max-width:460px;
+  max-height:86vh;display:flex;flex-direction:column;overflow:hidden;
+}
+.modal.wide{max-width:660px}
+.modal-h{padding:15px 18px 11px;border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:8px}
+.modal-h b{font-size:14.5px;font-weight:650}
+.modal-h .spacer{flex:1}
+.modal-b{padding:16px 18px;overflow-y:auto}
+.modal-f{padding:12px 18px;border-top:1px solid var(--rule);display:flex;gap:8px;justify-content:flex-end;background:var(--raised)}
+
+/* ---------- 浮层菜单 ---------- */
+.pop{
+  position:absolute;background:var(--card);border:1px solid var(--rule);border-radius:10px;
+  box-shadow:var(--sh2);z-index:50;padding:6px;min-width:212px;max-height:70vh;overflow-y:auto;
+}
+.pop-i{display:flex;align-items:center;gap:8px;width:100%;padding:7px 9px;border-radius:6px;font-size:13.5px;color:var(--ink2);text-align:left}
+.pop-i:hover{background:var(--sunken);color:var(--ink)}
+.pop-i.on{background:var(--accent-weak);color:var(--accent);font-weight:600}
+.pop-i .ct{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink3)}
+.pop-sep{height:1px;background:var(--rule);margin:5px 2px}
+
+/* ---------- 灯箱 ---------- */
+.lightbox{position:fixed;inset:0;background:rgba(15,22,28,.9);z-index:80;display:flex;flex-direction:column}
+.lightbox-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;color:#D6DEE2;font-size:12.5px}
+.lightbox-bar .spacer{flex:1}
+.lightbox-bar .btn{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.16);color:#E7EDF0}
+.lightbox-bar .btn:hover{background:rgba(255,255,255,.18);color:#fff;border-color:rgba(255,255,255,.28)}
+.lightbox-stage{flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:0 20px 24px}
+.lightbox-stage img{max-width:100%;transform-origin:top center;background:#fff;border-radius:4px}
+
+/* ---------- 提示条 ---------- */
+.toast{
+  position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:90;
+  background:#182530;color:#EAF0F2;padding:9px 15px;border-radius:8px;font-size:13px;
+  box-shadow:var(--sh2);display:flex;align-items:center;gap:9px;animation:tin .18s ease-out;
+}
+.toast .u{color:#7DD3C6;font-weight:600}
+@keyframes tin{from{opacity:0;transform:translate(-50%,7px)}to{opacity:1;transform:translate(-50%,0)}}
+.paste-fx{
+  position:fixed;inset:0;z-index:70;pointer-events:none;
+  box-shadow:inset 0 0 0 3px var(--accent);animation:pf .5s ease-out forwards;
+}
+@keyframes pf{from{opacity:1}to{opacity:0}}
+
+/* ---------- 拖拽全局提示 ---------- */
+.dragging::after{
+  content:"松手即可导入截图";position:fixed;inset:0;z-index:75;
+  display:flex;align-items:center;justify-content:center;
+  background:color-mix(in srgb,var(--accent) 10%,transparent);box-shadow:inset 0 0 0 3px var(--accent);
+  color:var(--accent);font-size:16px;font-weight:600;letter-spacing:.05em;pointer-events:none;
+}

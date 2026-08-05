@@ -1,0 +1,37 @@
+/* ---------- 大纲树 ---------- */
+.tree{padding:0 8px 10px;flex:1;min-height:0}
+.node{
+  display:flex;align-items:center;gap:4px;height:29px;padding:0 6px 0 4px;border-radius:6px;
+  color:var(--ink2);cursor:pointer;position:relative;
+}
+.node:hover{background:var(--sunken)}
+.node.on{background:var(--accent-weak);color:var(--accent);font-weight:600}
+.node .tw{width:16px;height:16px;flex:0 0 16px;display:flex;align-items:center;justify-content:center;color:var(--ink3);border-radius:4px}
+.node .tw:hover{background:var(--hover)}
+.node .tw.leaf{visibility:hidden}
+.node .tt{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px}
+.node .cnt{font-family:var(--mono);font-size:11px;color:var(--ink3);padding-left:4px}
+.node.on .cnt{color:var(--accent)}
+.node .row-act{display:none;gap:1px}
+.node:hover .row-act{display:flex}
+.node:hover .cnt{display:none}
+.node .row-act .btn{width:21px;height:21px;padding:0;justify-content:center;border-color:transparent;background:transparent;color:var(--ink3)}
+.node .row-act .btn:hover{background:var(--hover);color:var(--ink)}
+.node.drop{box-shadow:inset 0 0 0 2px var(--accent)}
+.node[data-depth="1"]{padding-left:18px}
+.node[data-depth="2"]{padding-left:34px}
+
+/* ---------- 筛选 ---------- */
+.filters{border-top:1px solid var(--rule);padding:4px 12px 12px;max-height:46%;flex:0 0 auto}
+.fgroup{margin-top:10px}
+.fgroup .flabel{font-size:11.5px;color:var(--ink3);letter-spacing:.1em;margin-bottom:6px}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{
+  display:inline-flex;align-items:center;gap:4px;height:23px;padding:0 8px;border-radius:6px;
+  border:1px solid var(--rule);background:var(--card);font-size:12px;color:var(--ink2);
+}
+.chip:hover{border-color:var(--rule-h);background:var(--raised)}
+.chip.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.chip.on.red{background:var(--red);border-color:var(--red)}
+.chip .n{font-family:var(--mono);font-size:10.5px;opacity:.65}
+.chip.dstar{padding:0 7px}

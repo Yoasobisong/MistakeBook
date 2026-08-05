@@ -1,0 +1,119 @@
+/* ============================================================
+   错题本 — 设计令牌
+   青墨 #0E6A78 = 我的整理    朱红 #BE3A32 = 错误与订正
+
+   暗色不是把亮色反相：青墨和朱红在深底上会糊掉，必须整体提亮、
+   同时把弱背景压暗，才能保住「青墨=整理 / 朱红=订正」这层语义。
+   ============================================================ */
+:root {
+  color-scheme: light;
+
+  /* 表面 */
+  --paper:#F3F5F6;
+  --grid:#E7ECEE;
+  --card:#FFFFFF;
+  --raised:#FBFCFC;      /* 比卡片略浮：弹窗底栏、配置块 */
+  --sunken:#F1F5F6;      /* 比卡片略陷：进度槽、标签、行内代码 */
+  --hover:#EDF2F3;       /* 悬停底色 */
+
+  /* 文字 */
+  --ink:#14202A;
+  --ink2:#55636F;
+  --ink3:#8B98A3;
+
+  /* 描边 */
+  --rule:#E2E8EB;
+  --rule2:#EFF3F4;
+  --rule-h:#C8D3D7;      /* 悬停时的描边 */
+  --scroll:#CDD6DA;
+
+  /* 语义色 */
+  --accent:#0E6A78;
+  --accent-h:#0B5866;
+  --accent-weak:#E4F0F1;
+  --on-accent:#FFFFFF;   /* 铺在实心强调色上的文字 */
+  --red:#BE3A32;
+  --red-weak:#FBECEA;
+  --red-line:#EDD3D0;
+  --amber:#C08213;
+  --amber-weak:#FBF1DC;
+  --amber-line:#EBD8AC;
+  --green:#2E7D5B;
+  --green-weak:#E6F2EC;
+  --green-line:#BFDDCE;
+  --mark:#FBEEA8;
+  --star:#D9B23A;
+
+  /* 缺图占位的斜纹 */
+  --hatch-a:#FAFBFB;
+  --hatch-b:#F4F7F7;
+
+  /* 难度梯度 */
+  --d1:#93BCC1; --d2:#0E6A78; --d3:#C08213; --d4:#D2603B; --d5:#BE3A32;
+
+  --sans:"PingFang SC","Microsoft YaHei","Segoe UI",-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"Cascadia Mono","Consolas","SF Mono","Menlo",monospace;
+  --r:9px;
+  --sh:0 1px 2px rgba(20,32,42,.05);
+  --sh2:0 8px 28px rgba(20,32,42,.13);
+  --rail:248px;
+
+  /* 图片反相：按底色极性分两个方向，规则见 images.js 的 detectPolarity
+     inv-light 给「浅底深字」用，inv-dark 给「深底浅字」用 */
+  --inv-light:none;
+  --inv-dark:invert(1) hue-rotate(180deg);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --paper:#0F1519;
+  --grid:#161E23;
+  --card:#171F25;
+  --raised:#1D262C;
+  --sunken:#121A1F;
+  --hover:#222D34;
+
+  --ink:#E6ECEF;
+  --ink2:#9FADB7;
+  --ink3:#6B7A85;
+
+  --rule:#28333A;
+  --rule2:#1F292F;
+  --rule-h:#3B4A53;
+  --scroll:#3A474F;
+
+  --accent:#5CBACB;
+  --accent-h:#7ACEDC;
+  --accent-weak:#12333A;
+  --on-accent:#0B1417;   /* 提亮后的青墨很浅，上面要压深色字 */
+  --red:#EE8078;
+  --red-weak:#37211F;
+  --red-line:#5A322D;
+  --amber:#DCA646;
+  --amber-weak:#332818;
+  --amber-line:#55411F;
+  --green:#63C093;
+  --green-weak:#17322A;
+  --green-line:#2A5142;
+  --mark:#4E4514;
+  --star:#E4C155;
+
+  --hatch-a:#161E23;
+  --hatch-b:#1B242A;
+
+  --d1:#7FA9AF; --d2:#5CBACB; --d3:#DCA646; --d4:#E58358; --d5:#EE8078;
+
+  --sh:0 1px 2px rgba(0,0,0,.45);
+  --sh2:0 10px 32px rgba(0,0,0,.6);
+
+  /* 暗色主题下两个方向对调：浅底图要反相，深底图本来就协调 */
+  /* invert 之后色相会翻转，再转 180° 把彩色批注的颜色转回来 */
+  --inv-light:invert(1) hue-rotate(180deg);
+  --inv-dark:none;
+}
+
+/* 底色极性 —— 全局生效，卡片缩略图、详情大图、灯箱共用同一套规则 */
+.pol-light{filter:var(--inv-light)}
+.pol-dark{filter:var(--inv-dark)}
+.pol-color{filter:none}
