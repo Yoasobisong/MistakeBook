@@ -1,0 +1,33 @@
+# 依赖
+node_modules/
+
+# 构建产物
+dist-app/
+release/
+
+# Electron 特定
+electron-builder.env
+*.exe.blockmap
+
+# 临时/缓存
+*.log
+*.tmp
+*.bak
+
+# 编辑器/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 系统
+.DS_Store
+Thumbs.db
+
+# 本地 Ollama
+ollama/
+
+# 其他
+task.md
+启动错题本.bat
+*.md
