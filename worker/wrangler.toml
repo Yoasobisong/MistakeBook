@@ -1,0 +1,16 @@
+name = "cuotiben-api"
+main = "index.js"
+compatibility_date = "2026-01-01"
+
+# 面板上建好之后，把 database_id 填进来
+[[d1_databases]]
+binding = "DB"
+database_name = "cuotiben"
+database_id = "PUT_YOUR_D1_DATABASE_ID_HERE"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "cuotiben-images"
+
+# PUSH_TOKEN 不写在这里 —— 用 `wrangler secret put PUSH_TOKEN` 设置，
+# 免得跟着仓库一起进 GitHub

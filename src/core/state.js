@@ -14,6 +14,8 @@ export function defaultSettings () {
     zoom: 1,
     /** 自动备份，仅 Electron 下可用 */
     backup: { enabled: false, dir: '', keep: 5, everyDays: 1, lastAt: 0 },
+    /** 云端同步：桌面版单向推送，网页端只读 */
+    cloud: { apiBase: '', token: '', autoPush: false, lastPush: 0 },
     /** 'auto' 跟随系统 | 'light' | 'dark' */
     theme: 'auto',
     ai: {
@@ -117,6 +119,7 @@ export function mergeSettings (saved) {
     ...d,
     ...saved,
     backup: { ...d.backup, ...(saved.backup || {}) },
+    cloud: { ...d.cloud, ...(saved.cloud || {}) },
     ai: {
       ...d.ai,
       ...(saved.ai || {}),
