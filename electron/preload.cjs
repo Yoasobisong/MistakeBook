@@ -36,5 +36,19 @@ contextBridge.exposeInMainWorld('native', {
     get: key => ipcRenderer.invoke('secret:get', key),
     set: (key, value) => ipcRenderer.invoke('secret:set', key, value),
     available: () => ipcRenderer.invoke('secret:available')
+  },
+
+  backup: {
+    pickDir: () => ipcRenderer.invoke('backup:pickDir'),
+    defaultDir: () => ipcRenderer.invoke('backup:defaultDir'),
+    list: dir => ipcRenderer.invoke('backup:list', dir),
+    write: opts => ipcRenderer.invoke('backup:write', opts),
+    reveal: dir => ipcRenderer.invoke('backup:reveal', dir),
+
+    // 增量格式
+    snapshots: dir => ipcRenderer.invoke('backup:snapshots', dir),
+    haveImages: dir => ipcRenderer.invoke('backup:haveImages', dir),
+    writeIncremental: opts => ipcRenderer.invoke('backup:writeIncremental', opts),
+    readSnapshot: opts => ipcRenderer.invoke('backup:readSnapshot', opts)
   }
 })

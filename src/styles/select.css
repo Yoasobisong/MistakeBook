@@ -1,0 +1,33 @@
+/* ============ 批量选择工具条 ============ */
+.selbar{
+  display:flex;align-items:center;gap:7px;padding:7px 14px;
+  background:var(--accent-weak);border-bottom:1px solid var(--rule);
+  font-size:12.5px;color:var(--accent);
+}
+.selbar .spacer{flex:1}
+.selbar .tip{font-size:11.5px;color:var(--ink3)}
+.selbar .ck{display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:600}
+.selbar .vr{width:1px;height:16px;background:color-mix(in srgb,var(--accent) 30%,transparent)}
+.selbar .btn.sm{height:24px}
+
+/* 卡片的选中态 */
+.card.pick{cursor:pointer}
+.card.pick .ckbox{
+  position:absolute;top:7px;left:9px;z-index:3;
+  width:17px;height:17px;border-radius:5px;
+  border:1.5px solid var(--rule-h);background:var(--card);
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;color:var(--on-accent);line-height:1;
+}
+.card.pick.on .ckbox{background:var(--accent);border-color:var(--accent)}
+.card.pick .c-h{padding-left:32px}
+.card.pick.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-weak)}
+
+/* ============ 回收站 ============ */
+.trash{max-height:420px;overflow-y:auto;border:1px solid var(--rule);border-radius:var(--r);background:var(--card)}
+.trash-row{display:flex;align-items:center;gap:9px;padding:7px 11px;border-bottom:1px solid var(--rule2);font-size:12.5px}
+.trash-row:last-child{border-bottom:0}
+.trash-row .ic{flex:0 0 auto;font-size:11px;color:var(--ink3);font-family:var(--mono)}
+.trash-row .tt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink2)}
+.trash-row .dt{flex:0 0 auto;font-size:11px;color:var(--ink3);font-family:var(--mono)}
+.trash-empty{padding:22px;text-align:center;font-size:12.5px;color:var(--ink3)}

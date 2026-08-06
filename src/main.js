@@ -36,6 +36,8 @@ import { loadKeys } from './ai/config.js'
 import { applyTheme, cycleTheme, paintThemeBtn } from './ui/theme.js'
 import { handleAIPanelClick, sendChat } from './ui/ai-panel.js'
 import { tocImportFlow, tocPasteImage } from './ui/toc-import.js'
+import { clearSel, handleSelClick, selClick, selMode, toggleSelMode } from './ui/select.js'
+import { canAutoBackup, scheduleBackup } from './ui/autobackup.js'
 import { bindZoom } from './ui/zoom.js'
 
 let pendingSlot = 'q'
@@ -62,6 +64,10 @@ function bindClicks () {
     if (hit('#btnStatsBack') || hit('#btnBack')) { go('list'); render('list'); return }
     if (hit('#btnPrint')) { printFlow(false); return }
     if (hit('#btnSet')) { settingsModal(); return }
+    if (hit('#btnSel')) { toggleSelMode(); return }
+
+    // 批量工具条（全选、各项批量操作）
+    if (handleSelClick(t)) return
     if (hit('#btnTheme')) { cycleTheme(); saveMetaSoon(); return }
     if (hit('#btnDetPrint')) { printFlow(true); return }
     if (hit('#btnDetDel')) { await removeProblem(S.problemId); return }
@@ -107,6 +113,8 @@ function bindClicks () {
         return
       }
       S.chapterId = node.dataset.all ? null : (node.dataset.un ? '' : cid)
+      // 换了章节，之前选中的题已经不在视野里了，留着容易误操作
+      if (selMode()) clearSel()
       go('list'); saveMetaSoon(); render('tree', 'list')
       return
     }
@@ -133,6 +141,10 @@ function bindClicks () {
       f.star = !f.star; changed = true
     } else if (hit('[data-noans]')) {
       f.noAnswer = !f.noAnswer; changed = true
+    } else if (hit('[data-notext]')) {
+      f.noText = !f.noText; changed = true
+    } else if (hit('[data-noai]')) {
+      f.noAI = !f.noAI; changed = true
     } else if (hit('[data-clr]')) {
       S.f = emptyFilters(); changed = true
     }
@@ -145,7 +157,12 @@ function bindClicks () {
 
     /* ---- 卡片 ---- */
     const card = hit('.card')
-    if (card) { openProblem(card.dataset.pid); return }
+    if (card) {
+      // 批量模式下点卡片是选中，不是打开
+      if (selClick(card.dataset.pid, e.shiftKey)) return
+      openProblem(card.dataset.pid)
+      return
+    }
 
     /* ---- 详情主体 ---- */
     if (hit('#btnPrev') || hit('#btnNext')) { nav(hit('#btnPrev') ? -1 : 1); return }
@@ -441,9 +458,13 @@ async function boot () {
   bindZoom()
 
   renderAll()
+  scheduleBackup()
 
-  if (S.problems.length >= 15 && Date.now() - S.lastBackup > 12 * 864e5) {
-    setTimeout(() => toast('好久没备份了', '设置 → 备份 → 导出全部'), 1600)
+  // 自动备份接管之后就不用再唠叨了
+  if (!canAutoBackup() || !S.settings.backup.enabled) {
+    if (S.problems.length >= 15 && Date.now() - S.lastBackup > 12 * 864e5) {
+      setTimeout(() => toast('好久没备份了', '设置 → 备份 → 导出全部'), 1600)
+    }
   }
 }
 

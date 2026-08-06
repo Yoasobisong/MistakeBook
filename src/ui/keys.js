@@ -5,13 +5,14 @@ import { PROB } from '../core/selectors.js'
 import { saveProblem } from '../storage/repo.js'
 import { nav, openNote, renderDetail, renderSide } from './detail.js'
 import { go, render } from './render.js'
+import { clearSel, selectAll, selMode } from './select.js'
 
 export function bindKeys () {
   document.addEventListener('keydown', e => {
     const typing = /INPUT|TEXTAREA|SELECT/.test(e.target.tagName || '')
 
     if (e.key === 'Escape') {
-      // 逐层退出：弹窗 → 批注编辑 → 回列表
+      // 逐层退出：弹窗 → 批注编辑 → 批量模式 → 回列表
       const mask = $$('.mask').pop()
       if (mask) {
         const x = mask.querySelector('[data-x]')
@@ -19,11 +20,19 @@ export function bindKeys () {
         return
       }
       if ($('#noteEdit')) { $('#noteEdit').blur(); return }
+      if (selMode()) { clearSel(); return }
       if (S.view !== 'list') { go('list'); render('list') }
       return
     }
 
     if (typing) return
+
+    // 批量模式下 Ctrl+A 全选当前列表
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'a' || e.key === 'A') && selMode()) {
+      e.preventDefault()
+      selectAll()
+      return
+    }
     if (e.ctrlKey || e.metaKey || e.altKey) return
 
     if (e.key === '/') { e.preventDefault(); $('#q').focus(); $('#q').select(); return }

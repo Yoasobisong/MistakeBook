@@ -245,6 +245,17 @@ export async function hydrate (root) {
   }
 }
 
+/** 从原图重建缩略图。增量备份只存原图，缩略图恢复时现算，省一半同步流量 */
+export async function makeThumb (blob) {
+  const im = await loadBitmap(blob)
+  let cv = document.createElement('canvas')
+  cv.width = im.naturalWidth
+  cv.height = im.naturalHeight
+  cv.getContext('2d').drawImage(im, 0, 0)
+  cv = scaleTo(cv, 620)
+  return canvasBlob(cv, canWebp() ? 'image/webp' : 'image/jpeg', 0.78)
+}
+
 /* ---------- 发给视觉模型用 ---------- */
 
 /**

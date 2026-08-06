@@ -5,7 +5,7 @@
  * 以后要接 PaddleOCR / pix2tex 那种专用公式识别，只需在这里加一个同签名的
  * 引擎函数，上层 UI 与分析链路完全不用改。
  */
-import { S } from '../core/state.js'
+import { S, chatLog } from '../core/state.js'
 import { slotName } from '../core/consts.js'
 import { BOOK, chTree, topicCounts, byCountDesc } from '../core/selectors.js'
 import { uid } from '../core/dom.js'
@@ -158,7 +158,7 @@ export async function chatAbout (p, text) {
     return { ok: false, error: '分析槽还没配好模型，去「设置 → AI」配置' }
   }
 
-  const history = (p.chat || []).slice(-HISTORY_TURNS)
+  const history = (chatLog.get(p.id) || []).slice(-HISTORY_TURNS)
   const msgs = [
     { role: 'system', content: CHAT_SYS },
     { role: 'user', content: chatContext({ latex: p.latex, topics: p.topics }) },

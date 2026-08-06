@@ -12,6 +12,8 @@ export function defaultSettings () {
     maxW: 1600,
     /** 正文缩放，Ctrl+滚轮调节 */
     zoom: 1,
+    /** 自动备份，仅 Electron 下可用 */
+    backup: { enabled: false, dir: '', keep: 5, everyDays: 1, lastAt: 0 },
     /** 'auto' 跟随系统 | 'light' | 'dark' */
     theme: 'auto',
     ai: {
@@ -30,7 +32,12 @@ export function defaultSettings () {
 }
 
 export const emptyFilters = () => ({
-  reasons: [], diff: [], mastery: [], star: false, kind: '', noAnswer: false
+  reasons: [], diff: [], mastery: [], star: false, kind: '',
+  noAnswer: false,
+  /** 有截图但还没提取出文字 */
+  noText: false,
+  /** 有文字但还没分析过考点 */
+  noAI: false
 })
 
 export const emptyLatex = () => ({ q: '', a: '', x: '' })
@@ -65,13 +72,21 @@ export const openSecs = new Set()
 /** 截图折叠区的展开状态，键是槽位 key。同样只存内存 */
 export const openShots = new Set()
 
+/**
+ * 与 AI 的对话记录，键是题目 id。
+ * **刻意不落库**：对话是理解题目的过程，不是笔记本身；
+ * 真正有价值的结论应该由你手动写进批注。
+ * 全存下来只会让题目记录和每一份备份快照无谓地膨胀。
+ */
+export const chatLog = new Map()
+
 /* ---------- 记录迁移：补齐新版字段，让旧备份也能导入 ---------- */
 
 export function migrateProblem (p) {
   if (!p.latex || typeof p.latex !== 'object') p.latex = emptyLatex()
   if (!p.ai || typeof p.ai !== 'object') p.ai = emptyAI()
   else p.ai = { ...emptyAI(), ...p.ai }
-  if (!Array.isArray(p.chat)) p.chat = []
+  delete p.chat // 早期版本把对话存进过题目记录，清掉
   if (!p.deletedAt) p.deletedAt = 0
   if (!Array.isArray(p.reasons)) p.reasons = []
   if (!Array.isArray(p.topics)) p.topics = []
@@ -101,6 +116,7 @@ export function mergeSettings (saved) {
   return {
     ...d,
     ...saved,
+    backup: { ...d.backup, ...(saved.backup || {}) },
     ai: {
       ...d.ai,
       ...(saved.ai || {}),

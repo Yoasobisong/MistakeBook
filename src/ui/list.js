@@ -5,8 +5,9 @@ import { fmtD, pad } from '../core/fmt.js'
 import { S } from '../core/state.js'
 import { MASTERY } from '../core/consts.js'
 import { BOOK, chName, filtered, isFiltering } from '../core/selectors.js'
-import { mdRender, typeset } from '../core/md.js'
+import { mdRender } from '../core/md.js'
 import { hydrate } from '../storage/images.js'
+import { sel, selBarHTML, selMode } from './select.js'
 
 const masteryLabel = v => (MASTERY[v | 0] || MASTERY[0]).t
 
@@ -40,7 +41,10 @@ export function cardHTML (p) {
       ? `<img class="c-thumb" data-img="${q.id}" data-kind="thumb" alt="">`
       : '<div class="c-empty">还没有截图</div>'
 
-  return `<article class="card ${p.id === S.problemId ? 'sel' : ''}" data-d="${d}" data-pid="${p.id}" draggable="true">
+  const on = selMode() && sel.has(p.id)
+
+  return `<article class="card ${p.id === S.problemId ? 'sel' : ''} ${selMode() ? 'pick' : ''} ${on ? 'on' : ''}" data-d="${d}" data-pid="${p.id}" draggable="${!selMode()}">
+    ${selMode() ? `<span class="ckbox">${on ? '✓' : ''}</span>` : ''}
     <div class="c-h">
       <span class="c-id">#${pad(p.no || 0)}</span>
       <span class="c-kind ${p.kind === 'good' ? 'good' : ''}">${p.kind === 'good' ? '好题' : '错题'}</span>
@@ -69,6 +73,7 @@ export function renderList () {
 
   const arr = filtered()
   $('#listCount').textContent = arr.length ? arr.length + ' 题' : ''
+  $('#selBar').innerHTML = selBarHTML()
 
   const box = $('#cards')
   box.className = 'grid ' + (S.size === 'md' ? '' : S.size)
@@ -95,7 +100,6 @@ export function renderList () {
 
   box.innerHTML = arr.map(cardHTML).join('')
   hydrate(box)
-  typeset(box)
 }
 
 on('render:list', renderList)

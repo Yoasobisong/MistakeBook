@@ -1,6 +1,6 @@
 /** 设置与备份弹窗（分页：通用 / AI / 备份） */
-import { $ } from '../core/dom.js'
-import { bytes } from '../core/fmt.js'
+import { $, esc } from '../core/dom.js'
+import { bytes, fmtDT } from '../core/fmt.js'
 import { S } from '../core/state.js'
 import { BOOK } from '../core/selectors.js'
 import { saveMeta, markBackedUp } from '../storage/repo.js'
@@ -10,6 +10,8 @@ import { toast } from './toast.js'
 import { renderAll } from './render.js'
 import { aiPaneHTML, applyAI, handleAIClick, readAI } from './ai-settings.js'
 import { keyStorageSafe } from '../ai/config.js'
+import { trashCount, trashModal } from './trash.js'
+import { canAutoBackup, restoreFromFolder, runBackup } from './autobackup.js'
 import { MODES, applyTheme } from './theme.js'
 
 async function storageLine () {
@@ -32,6 +34,7 @@ const PANES = [
 export async function settingsModal (startTab = 'general') {
   const line = await storageLine()
   const safeKeys = await keyStorageSafe()
+  const bk = S.settings.backup
 
   const body = `
     <div class="tabs" style="margin:-16px -18px 14px">
@@ -71,9 +74,39 @@ export async function settingsModal (startTab = 'general') {
           <button class="btn" data-act="exp1">导出当前这本书</button>
           <button class="btn" data-act="expall">导出全部（含图片）</button>
           <button class="btn" data-act="imp">从备份恢复</button>
+          <button class="btn" data-act="trash">回收站${trashCount() ? `（${trashCount()}）` : ''}</button>
         </div>
         <div style="font-size:12px;color:var(--ink3);margin-top:8px;line-height:1.8">
           数据存在浏览器本地。清理浏览数据、换电脑、重装系统都会丢，<b>建议每周导出一次</b>放到网盘。</div>
+
+        <div class="sep"></div>
+        <div class="mt-l" style="margin-bottom:7px">自动备份</div>
+        ${canAutoBackup()
+          ? `<label style="display:block;margin-bottom:7px">
+               <input type="checkbox" id="bkOn" ${bk.enabled ? 'checked' : ''}> 启动时自动备份到本地文件夹（含图片）</label>
+             <div style="display:flex;gap:7px;align-items:center;margin-bottom:7px">
+               <input class="inp" id="bkDir" value="${esc(bk.dir)}" placeholder="还没选择目录" readonly style="flex:1">
+               <button class="btn sm" data-act="bkdir">选择…</button>
+               ${bk.dir ? '<button class="btn sm" data-act="bkopen">打开</button>' : ''}
+             </div>
+             <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+               <div style="flex:0 0 110px">
+                 <label class="fld">保留份数</label>
+                 <input class="inp" id="bkKeep" type="number" min="1" max="30" value="${bk.keep}">
+               </div>
+               <div style="flex:0 0 110px">
+                 <label class="fld">间隔（天）</label>
+                 <input class="inp" id="bkDays" type="number" min="1" max="30" value="${bk.everyDays}">
+               </div>
+               <button class="btn sm" data-act="bknow">立即备份一次</button>
+               <button class="btn sm" data-act="bkrestore">从备份文件夹恢复</button>
+             </div>
+             <div style="font-size:11.5px;color:var(--ink3);margin-top:7px;line-height:1.7">
+               ${bk.lastAt ? `上次备份：${fmtDT(bk.lastAt)}` : '还没有备份过'}<br>
+               增量格式：图片按 id 拆成独立文件只写一次，之后每次只追加新增的。<br>
+               把目录设成<b>网盘的同步文件夹</b>，同步客户端就只传新题的截图，不会每天重传几百 MB。
+             </div>`
+          : '<div style="font-size:12px;color:var(--ink3);line-height:1.8">浏览器版碰不到文件系统，自动备份只能在桌面版里用。</div>'}
       </div>
     </div>`
 
@@ -93,7 +126,7 @@ export async function settingsModal (startTab = 'general') {
       }
       const act = target.closest('[data-act]')
       if (act) {
-        handleBackupAction(act.dataset.act)
+        handleBackupAction(act.dataset.act, wrap)
         return true
       }
       return handleAIClick(target, wrap)
@@ -104,6 +137,13 @@ export async function settingsModal (startTab = 'general') {
       foldAnswer: $('#setFold', w).checked,
       maxW: +$('#setW', w).value,
       theme: $('#setTheme', w).value,
+      backup: canAutoBackup()
+        ? {
+            enabled: $('#bkOn', w).checked,
+            keep: +$('#bkKeep', w).value,
+            everyDays: +$('#bkDays', w).value
+          }
+        : null,
       ai: readAI(w)
     })
   })
@@ -113,13 +153,41 @@ export async function settingsModal (startTab = 'general') {
   S.settings.foldAnswer = result.foldAnswer
   S.settings.maxW = result.maxW
   S.settings.theme = result.theme
+  if (result.backup) {
+    const b = S.settings.backup
+    b.enabled = result.backup.enabled
+    b.keep = Math.max(1, Math.min(30, result.backup.keep || 5))
+    b.everyDays = Math.max(1, Math.min(30, result.backup.everyDays || 1))
+  }
   applyTheme()
   await applyAI(result.ai)
   await saveMeta()
 }
 
-async function handleBackupAction (a) {
+async function handleBackupAction (a, wrap) {
+  if (a === 'trash') { trashModal(); return }
   if (a === 'imp') { $('#jsonPick').click(); return }
+
+  if (a === 'bkdir') {
+    const dir = await window.native.backup.pickDir()
+    if (!dir) return
+    S.settings.backup.dir = dir
+    await saveMeta()
+    const inp = wrap?.querySelector('#bkDir')
+    if (inp) inp.value = dir
+    toast('备份目录已设置', dir)
+    return
+  }
+  if (a === 'bkopen') { window.native.backup.reveal(S.settings.backup.dir); return }
+  if (a === 'bkrestore') { restoreFromFolder(); return }
+  if (a === 'bknow') {
+    if (!S.settings.backup.dir) { toast('先选择备份目录'); return }
+    toast('正在打包…')
+    await runBackup()
+    await saveMeta()
+    return
+  }
+
   if (a === 'exp1' && !S.bookId) { toast('先选一本书'); return }
 
   const all = a === 'expall'

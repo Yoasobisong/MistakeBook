@@ -1,7 +1,8 @@
-const { app, BrowserWindow, Menu, ipcMain, safeStorage, shell } = require('electron')
+const { app, BrowserWindow, Menu, dialog, ipcMain, safeStorage, shell } = require('electron')
 const path = require('node:path')
 const { registerAI } = require('./ai-proxy.cjs')
 const { registerSecrets } = require('./secrets.cjs')
+const { registerBackup } = require('./backup.cjs')
 
 const DEV_URL = process.env.DEV_SERVER_URL
 
@@ -101,6 +102,7 @@ app.on('second-instance', () => {
 app.whenReady().then(() => {
   registerSecrets(ipcMain, app, safeStorage)
   registerAI(ipcMain)
+  registerBackup(ipcMain, app, dialog, BrowserWindow)
   buildMenu()
   createWindow()
 

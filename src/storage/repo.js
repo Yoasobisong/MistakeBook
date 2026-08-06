@@ -98,11 +98,8 @@ export async function deleteBook (id) {
   const ps = bookProblems(id)
   const cs = chOf(id)
 
-  const imgIds = ps.flatMap(p => p.images.map(i => i.id))
-  await dbDelMany('images', imgIds)
-  forgetImages(imgIds)
-
-  ps.forEach(p => { p.deletedAt = ts; p.updatedAt = ts; p.images = [] })
+  // 同样只打墓碑，图片留给 purgeTombstones 清
+  ps.forEach(p => { p.deletedAt = ts; p.updatedAt = ts })
   cs.forEach(c => { c.deletedAt = ts; c.updatedAt = ts })
   b.deletedAt = ts
   b.updatedAt = ts
@@ -196,16 +193,31 @@ export async function saveProblems (arr) {
 }
 
 /** 软删题目，图片真删 */
+/**
+ * 软删除。
+ * 图片 blob **不在这里删** —— 删了的话从回收站恢复出来就是一道没有截图的空题，
+ * 回收站也就失去意义了。blob 留到 purgeTombstones 真正清理时才释放。
+ */
 export async function deleteProblem (id) {
   const p = findProblem(id)
   if (!p) return
-  const imgIds = p.images.map(i => i.id)
-  await dbDelMany('images', imgIds)
-  forgetImages(imgIds)
-  p.images = []
   p.deletedAt = now()
   p.updatedAt = p.deletedAt
   await dbPut('problems', p)
+}
+
+/** 从回收站恢复 */
+export async function restoreProblem (id) {
+  const p = S.problems.find(x => x.id === id)
+  if (!p) return
+  p.deletedAt = 0
+  p.updatedAt = now()
+  // 原属章节可能已经被删了，那就退回未归类
+  if (p.chapterId && !S.chapters.some(c => c.id === p.chapterId && !c.deletedAt)) {
+    p.chapterId = null
+  }
+  await dbPut('problems', p)
+  return p
 }
 
 /** 删除题目里的单张图 */
@@ -225,11 +237,18 @@ export async function deleteImage (p, imgId) {
  * 同步尚未接入前不会自动调用 —— 一旦有多端，太早清墓碑会让已删记录复活。
  */
 export async function purgeTombstones (days = 90) {
-  const cut = now() - days * 864e5
+  const cut = days <= 0 ? Infinity : now() - days * 864e5
   const dead = r => r.deletedAt && r.deletedAt < cut
   const P = S.problems.filter(dead)
   const C = S.chapters.filter(dead)
   const B = S.books.filter(dead)
+
+  // 到这一步才真正释放图片 blob —— 软删除时留着是为了能从回收站恢复
+  const imgIds = P.flatMap(p => (p.images || []).map(i => i.id))
+  if (imgIds.length) {
+    await dbDelMany('images', imgIds)
+    forgetImages(imgIds)
+  }
 
   await dbDelMany('problems', P.map(r => r.id))
   await dbDelMany('chapters', C.map(r => r.id))
@@ -238,5 +257,9 @@ export async function purgeTombstones (days = 90) {
   S.problems = S.problems.filter(r => !dead(r))
   S.chapters = S.chapters.filter(r => !dead(r))
   S.books = S.books.filter(r => !dead(r))
-  return P.length + C.length + B.length
+  return { records: P.length + C.length + B.length, images: imgIds.length }
 }
+
+/** 回收站里的题目，最近删的排前面 */
+export const trashed = () =>
+  S.problems.filter(p => p.deletedAt).sort((a, b) => b.deletedAt - a.deletedAt)

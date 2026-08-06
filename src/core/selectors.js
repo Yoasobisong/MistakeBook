@@ -107,6 +107,10 @@ export function filtered () {
     if (f.kind && p.kind !== f.kind) return false
     if (f.star && !p.starred) return false
     if (f.noAnswer && p.images.some(i => i.slot === 'a')) return false
+    // 「未提取」只针对有截图的题 —— 空题还没录内容，不算待处理
+    if (f.noText && (!p.images.length || (p.latex?.q || '').trim())) return false
+    // 「未分析」要求已经有文字，否则分析也无从谈起
+    if (f.noAI && (!(p.latex?.q || p.latex?.a || '').trim() || p.ai?.analyzedAt)) return false
     if (f.diff.length && !f.diff.includes(p.difficulty)) return false
     if (f.mastery.length && !f.mastery.includes(p.mastery | 0)) return false
     if (f.reasons.length && !f.reasons.every(r => (p.reasons || []).includes(r))) return false
@@ -128,5 +132,6 @@ export function filtered () {
 /** 当前筛选是否处于激活状态（用于空状态文案与「清除」按钮） */
 export const isFiltering = () => {
   const f = S.f
-  return !!(S.q || f.reasons.length || f.diff.length || f.mastery.length || f.star || f.kind || f.noAnswer)
+  return !!(S.q || f.reasons.length || f.diff.length || f.mastery.length ||
+    f.star || f.kind || f.noAnswer || f.noText || f.noAI)
 }

@@ -6,11 +6,11 @@
  * 章节只在空着时才填（手动归过类的不被模型改掉）。
  */
 import { $, esc } from '../core/dom.js'
-import { S } from '../core/state.js'
+import { S, chatLog } from '../core/state.js'
 import { slotName } from '../core/consts.js'
 import { PROB, chName } from '../core/selectors.js'
 import { fmtDT } from '../core/fmt.js'
-import { mdRender, typeset } from '../core/md.js'
+import { mdRender } from '../core/md.js'
 import { saveProblem } from '../storage/repo.js'
 import { isConfigured } from '../ai/config.js'
 import { analyzeProblem, chatAbout, extractSlot } from '../ai/tasks.js'
@@ -86,7 +86,6 @@ export function openLatexEditor (slotKey) {
     }
     host.innerHTML = mdRender(p.latex[slotKey]) || `<span class="ph">${EMPTY_HINT}</span>`
     host.classList.toggle('empty', !p.latex[slotKey].trim())
-    typeset(host)
   })
   ta.addEventListener('keydown', e => { if (e.key === 'Escape') ta.blur() })
 }
@@ -142,12 +141,14 @@ export async function doAnalyze (silent) {
    ============================================================ */
 
 export function chatHTML (p) {
-  const msgs = p.chat || []
+  const msgs = chatLog.get(p.id) || []
   const ready = isConfigured('analyze')
 
   return `<section class="slot chat">
     <div class="slot-h"><span class="nm">和 AI 讨论</span>
-      <span class="hint">${msgs.length ? Math.ceil(msgs.length / 2) + ' 轮' : '问思路、问为什么、说你的做法让它挑错'}</span>
+      <span class="hint">${msgs.length
+        ? Math.ceil(msgs.length / 2) + ' 轮 · 关掉应用就清空'
+        : '问思路、问为什么、说你的做法让它挑错'}</span>
       <div class="spacer"></div>
       ${msgs.length ? '<button class="btn sm" data-chatact="clear">清空</button>' : ''}
     </div>
@@ -156,7 +157,8 @@ export function chatHTML (p) {
       ? `<div class="chat-log" id="chatLog">${msgs.map(m =>
           `<div class="msg ${m.role}"><div class="bub">${
             m.role === 'user' ? esc(m.content) : mdRender(m.content)
-          }</div></div>`).join('')}</div>`
+          }</div></div>`).join('')}</div>
+         <div class="chat-note">对话不会保存 —— 觉得有用的结论，顺手写进上面的批注里。</div>`
       : ''}
 
     <div class="chat-in">
@@ -175,9 +177,11 @@ export async function sendChat () {
   const text = box.value.trim()
   if (!text) return
 
+  const msgs = chatLog.get(p.id) || []
+  chatLog.set(p.id, msgs)
+
   box.value = ''
-  p.chat.push({ role: 'user', content: text, at: Date.now() })
-  await saveProblem(p)
+  msgs.push({ role: 'user', content: text })
   render('detail')
 
   const log = $('#chatLog')
@@ -187,24 +191,21 @@ export async function sendChat () {
   }
 
   const r = await chatAbout(p, text)
-  if (!r.ok) {
-    p.chat.push({ role: 'assistant', content: '（出错了：' + r.error + '）', at: Date.now() })
-    toast('对话失败', r.error.slice(0, 40))
-  } else {
-    p.chat.push({ role: 'assistant', content: r.text, at: Date.now() })
-  }
+  msgs.push({
+    role: 'assistant',
+    content: r.ok ? r.text : '（出错了：' + r.error + '）'
+  })
+  if (!r.ok) toast('对话失败', r.error.slice(0, 40))
 
-  await saveProblem(p)
   render('detail')
   const l2 = $('#chatLog')
   if (l2) l2.scrollTop = l2.scrollHeight
 }
 
-async function clearChat () {
+function clearChat () {
   const p = PROB()
   if (!p) return
-  p.chat = []
-  await saveProblem(p)
+  chatLog.delete(p.id)
   render('detail')
 }
 

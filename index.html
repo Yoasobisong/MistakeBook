@@ -80,10 +80,14 @@
           <div class="seg" id="sizeSeg">
             <button data-z="list" title="单列">☰</button><button data-z="md" title="网格">▦</button><button data-z="lg" title="大图">▣</button>
           </div>
+          <button class="btn" id="btnSel" title="批量选择">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 6.5l2 2 3.5-3.5M4 17.5l2 2 3.5-3.5M13 7h7M13 18h7"/></svg>批量
+          </button>
           <button class="btn primary" id="btnNew">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>新建题目
           </button>
         </div>
+        <div id="selBar"></div>
         <div class="canvas scroll" id="canvas"><div class="grid" id="cards"></div></div>
       </section>
 

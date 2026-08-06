@@ -1,4 +1,4 @@
-/** 左栏筛选面板：类型 / 星标 / 缺解析 / 难度 / 掌握 / 错因 */
+/** 左栏筛选面板：类型 / 星标 / 缺解析 / 待处理 / 难度 / 掌握 / 错因 */
 import { $, esc } from '../core/dom.js'
 import { on } from '../core/bus.js'
 import { S } from '../core/state.js'
@@ -20,6 +20,10 @@ export function renderFilters () {
         <button class="chip ${f.star ? 'on' : ''}" data-star>★ 星标</button>
         <button class="chip ${f.noAnswer ? 'on' : ''}" data-noans>缺解析</button>
       </div></div>
+    <div class="fgroup"><div class="flabel">待处理</div><div class="chips">
+      <button class="chip ${f.noText ? 'on' : ''}" data-notext title="有截图但还没提取出文字">未提取</button>
+      <button class="chip ${f.noAI ? 'on' : ''}" data-noai title="有文字但还没让 AI 分析过考点">未分析</button>
+    </div></div>
     <div class="fgroup"><div class="flabel">难度</div><div class="chips">
       ${[1, 2, 3, 4, 5].map(d => `<button class="chip dstar ${f.diff.includes(d) ? 'on' : ''}" data-d="${d}"
          style="${f.diff.includes(d) ? 'background:var(--d' + d + ');border-color:var(--d' + d + ')' : ''}">${d}</button>`).join('')}

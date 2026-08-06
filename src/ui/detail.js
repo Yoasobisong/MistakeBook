@@ -5,7 +5,7 @@ import { ago, fmtD, pad } from '../core/fmt.js'
 import { S, openSecs, openShots } from '../core/state.js'
 import { DIFF_LABEL, MASTERY, NOTE_SNIPS, REASONS, SLOTS, slotName } from '../core/consts.js'
 import { PROB, byCountDesc, chName, chTree, filtered, findProblem, topicCounts } from '../core/selectors.js'
-import { mdRender, typeset } from '../core/md.js'
+import { mdRender } from '../core/md.js'
 import { deleteImage, saveProblem } from '../storage/repo.js'
 import { POLARITIES, POLARITY_LABEL, hydrate, polarityOf, setPolarity } from '../storage/images.js'
 import { confirmBox } from './modal.js'
@@ -138,7 +138,6 @@ export function renderDetail () {
   </div>`
 
   hydrate($('#detMain'))
-  typeset($('#detMain'))
   renderSide()
 }
 
@@ -195,7 +194,6 @@ export async function closeNote () {
   const host = $('#noteHost')
   if (!host) return
   host.innerHTML = noteViewHTML(p)
-  typeset(host)
 }
 
 export function insertSnip (i) {
@@ -259,8 +257,6 @@ export function renderSide () {
       <button class="btn" style="width:100%" id="pReview">✓ 记一次复习${p.reviewCount ? `（已 ${p.reviewCount} 次）` : ''}</button>
       ${p.lastReviewAt ? `<div style="font-size:11.5px;color:var(--ink3);margin-top:5px" class="mono">上次 ${fmtD(p.lastReviewAt)} · ${ago(p.lastReviewAt)}</div>` : ''}
     </div>`
-
-  typeset($('#detSide'))
 }
 
 /* ---------- 图片操作 ---------- */
