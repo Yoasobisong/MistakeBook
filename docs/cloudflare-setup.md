@@ -1,7 +1,7 @@
 # 错题本云端部署 · Cloudflare 面板操作手册
 
 > 适用对象:首次使用 Cloudflare 的 Deric。
-> 目标:把错题本的云端 API(Worker + D1 + R2)和只读网页版(Cloudflare Pages)部署到 Cloudflare,并绑上自己的域名。
+> 目标:把错题本的云端 API(Worker + D1 + KV)和只读网页版(Cloudflare Pages)部署到 Cloudflare,并绑上自己的域名。
 > 本手册按操作顺序写,每一步都给出「进哪个页面 → 点什么 → 填什么 → 怎么验证」。照着做,大概 40 分钟能全部搞定。
 
 ---
@@ -12,7 +12,7 @@
 
 1. **Cloudflare 账号**:去 https://dash.cloudflare.com 注册/登录。免费版就够用。
 2. **域名**:你的域名(比如 `example.com`)在域名注册商那儿,先别做任何解析,交给 Cloudflare 接管(见第 0.1 节)。
-3. **网络**:你在国内,访问 Cloudflare 面板一般能开,但 Workers/D1/R2 后台和 `workers.dev` 域名可能慢或被墙。**全程开着 Clash 代理(127.0.0.1:7890)最省心**。命令行里用代理的办法见第 5 步。
+3. **网络**:你在国内,访问 Cloudflare 面板一般能开,但 Workers/D1/KV 后台和 `workers.dev` 域名可能慢或被墙。**全程开着 Clash 代理(127.0.0.1:7890)最省心**。命令行里用代理的办法见第 5 步。
 
 ### 0.1 把域名接入 Cloudflare(绑定自定义域的前置条件)
 
@@ -52,13 +52,16 @@ D1 是 Cloudflare 的 SQLite 数据库,存错题本的元数据(题目、章节�
 
 ---
 
-## 第 3 步:创建 R2 存储桶 `cuotiben-images`
+## 第 3 步:创建 KV 命名空间 `cuotiben-images`(替代 R2,不绑卡)
 
-R2 存错题图片的二进制文件(webp),便宜量大。
+KV 存错题图片的二进制文件(webp)。**为什么不用 R2:R2 开通要绑支付方式,而 KV 免费 1GB、零门槛**——错题本这点图片量完全够。
 
-1. 左侧菜单进 **「R2」**(在 Workers & Pages 同一级菜单里)→ 点 **「创建存储桶 / Create bucket」**。
-2. 名称填 **`cuotiben-images`**(注意是连字符,和 wrangler.toml 里的 `bucket_name` 完全一致)→ **创建 / Create**。
-3. 存储桶的访问权限先不用动。**R2 存储桶默认不能公开访问,也不需要公开**——本项目图片全部走 Worker 的 `/api/img/:id` 代理读出(见「常见坑」第 1 条)。
+1. 左侧菜单进 **「存储和数据库 / Storage & Databases」→「KV」**(新版面板里 D1、R2、KV 都在这一个栏目下)→ 点 **「创建命名空间 / Create a namespace」**。
+2. 名称填 **`cuotiben-images`**(注意是连字符)→ **创建 / Create**。
+3. 创建后复制它的 **Namespace ID**(一长串 hex,后面第 6 步要填进 `wrangler.toml`)。
+4. **KV 命名空间不能公开访问,也不需要公开**——本项目图片全部走 Worker 的 `/api/img/:id` 代理读出(见「常见坑」第 1 条)。
+
+> ⚠️ 面板里可能看到 R2 显示「需要添加支付方式 / 试用」——**忽略它**,我们不用 R2。KV 直接建,不碰支付。
 
 > 验证:列表页出现 `cuotiben-images`,点进去能看到「对象 / Objects」页面(空)。
 
@@ -74,21 +77,21 @@ R2 存错题图片的二进制文件(webp),便宜量大。
 4. 在权限列表里,把模板自带的权限保留,再**手动添加/确认以下几项**(每项都要「添加更多 / Add more」):
    - **Account → Workers Scripts → Edit**(模板自带)
    - **Account → D1 → Edit**(要手动加)
-   - **Account → R2 Storage → Edit**(模板一般自带,没有就加)
+   - **Account → Workers KV Storage → Edit**(要手动加)
    - **Account → Pages → Edit**(要手动加)
    - **Account → Account Settings → Read**(要手动加)
 5. **账户资源(Account Resources)**:默认是「包含所有账户 / Include all accounts」。如果你只有一个账号,保持默认即可。
-6. **账户级资源粒度(可选收窄,推荐)**:在权限明细里,Workers Scripts、D1、R2 都可以从「所有资源」收窄到具体资源:
+6. **账户级资源粒度(可选收窄,推荐)**:在权限明细里,Workers Scripts、D1、KV 都可以从「所有资源」收窄到具体资源:
    - Workers Scripts → **Include → Specific script → `cuotiben-api`**
    - D1 → **Include → Specific database → `cuotiben`**
-   - R2 → **Include → Specific bucket → `cuotiben-images`**
+   - KV → **Include → Specific namespace → `cuotiben-images`**
    - Pages 和 Account Settings 只能按账户粒度,保持默认。
    > 收窄后即使 Token 泄露,也只影响错题本这几个资源,影响面最小。
 7. **继续以显示摘要 / Continue to summary** → **创建令牌 / Create Token**。
 8. **立刻复制 Token 保存**(形如 `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`,很长),**只显示这一次,关掉页面就再也看不到了**。存到记事本里,后面第 5 步和第 10 步方式 B 要用。
 
 > 验证:创建完成后有个「测试 / Test」按钮,点一下显示 `status: active` 就说明 Token 有效。
-> ⚠️ 如果之后 wrangler 部署时报 403(权限不足),回到这里点 Token 右侧 **「编辑 / Edit」**,把缺的权限(尤其 **D1:Edit、R2:Edit、Pages:Edit、Account Settings:Read**)补上,保存即可生效,不用重新建 Token。报错长什么样、怎么排查见「常见坑」第 3 条。
+> ⚠️ 如果之后 wrangler 部署时报 403(权限不足),回到这里点 Token 右侧 **「编辑 / Edit」**,把缺的权限(尤其 **D1:Edit、Workers KV Storage:Edit、Pages:Edit、Account Settings:Read**)补上,保存即可生效,不用重新建 Token。报错长什么样、怎么排查见「常见坑」第 3 条。
 
 ---
 
@@ -127,7 +130,7 @@ wrangler 是 Cloudflare 的命令行工具,部署 Worker、执行 D1 SQL 都靠�
 
 ---
 
-## 第 6 步:把 D1 数据库 ID 填进 wrangler.toml
+## 第 6 步:把 D1 数据库 ID 和 KV Namespace ID 填进 wrangler.toml
 
 1. 用 VS Code / 记事本打开 `D:\APP\MistakeBook\worker\wrangler.toml`。
 2. 找到这两行:
@@ -145,9 +148,9 @@ wrangler 是 Cloudflare 的命令行工具,部署 Worker、执行 D1 SQL 都靠�
    database_id = "1a2b3c4d5e6f708192a3b4c5d6e7f809"
    ```
 
-4. 保存。`r2_buckets` 那段不用动,`bucket_name = "cuotiben-images"` 和第 3 步建的名字已经一致。
+4. 保存。`kv_namespaces` 那段也顺手确认:`id = "PUT_YOUR_KV_NAMESPACE_ID_HERE"` 要换成第 3 步复制的 Namespace ID,`binding = "IMAGES"` 保持不动。
 
-> 验证:再打开文件确认 `database_id` 后面不是 `PUT_YOUR...` 了。**这一步漏了或填错,第 7 步和第 9 步都会失败**(具体报错见「常见坑」第 2 条)。
+> 验证:再打开文件确认 `database_id` 和 KV 的 `id` 后面都不是 `PUT_YOUR...` 了。**这一步漏了或填错,第 7 步和第 9 步都会失败**(具体报错见「常见坑」第 2 条)。
 
 ---
 
@@ -343,7 +346,7 @@ wrangler secret list
 |---|---|---|
 | Workers | **10 万请求/天** | 每天几十次,绰绰有余 |
 | D1 | **5GB 存储**,另含每天 500 万行读 / 10 万行写 | 几万道题也就几十 MB |
-| R2 | **10GB 存储** + 每月 100 万次写操作(Class A)+ 1000 万次读操作(Class B) | 几百 MB 图片,轻松覆盖 |
+| KV | **1GB 存储** + 每天 10 万次读 / 1000 次写(单键上限 25MB) | 几百张截图几十 MB;首次全量推图几百次写,日常增量推送很少,都在额度内 |
 
 注意:免费额度超了不会扣钱,只是当月对应资源被停(Worker 会返回 1020 错误,下月自动恢复)。
 
@@ -351,8 +354,8 @@ wrangler secret list
 
 ## 常见坑
 
-1. **R2 存储桶不能直接公开访问。**
-   R2 桶没有公开 URL(不像 S3 那样可以开公开读),必须走 Worker 代理。本项目 `/api/img/:id` 就是干这个的——网页版 `<img>` 直接请求 `/api/img/<id>`,Worker 从桶里 `get('img/'+id)` 再流式返回。所以别去研究怎么给桶开公开权限,那是死路。
+1. **KV 命名空间不能直接公开访问。**
+   KV 没有公开读取的 URL,必须走 Worker 代理。本项目 `/api/img/:id` 就是干这个的——网页版 `<img>` 直接请求 `/api/img/<id>`,Worker 从 KV 里 `getWithMetadata(id)` 再返回。所以别去找什么公开权限开关,那是死路。
 
 2. **`wrangler.toml` 里 `database_id` 没填对会部署失败。**
    典型报错:
@@ -370,7 +373,7 @@ wrangler secret list
    排查步骤:
    - `wrangler whoami` 确认登录的是对的账号;
    - 确认 Token 是在「我的个人资料 → API 令牌」里创建的,而不是什么奇怪来源;
-   - 回第 4 步 **编辑** 该 Token,补齐 **D1:Edit、R2:Edit、Pages:Edit、Account Settings:Read** 这几项(模板「编辑 Cloudflare Workers」默认不含 D1/Pages,这是最常见的漏项);
+   - 回第 4 步 **编辑** 该 Token,补齐 **D1:Edit、Workers KV Storage:Edit、Pages:Edit、Account Settings:Read** 这几项(模板「编辑 Cloudflare Workers」默认不含 D1/KV/Pages,这是最常见的漏项);
    - 保存后无需重建 Token,直接重跑命令/重新触发 Actions。
 
 4. **secret 不要写进 wrangler.toml 或提交 git。**
@@ -397,8 +400,8 @@ wrangler secret list
 
 - [ ] 域名在 Cloudflare 状态 Active(第 0.1 节)
 - [ ] D1 数据库 `cuotiben` 已建,记下 database ID(第 2 步)
-- [ ] R2 桶 `cuotiben-images` 已建(第 3 步)
-- [ ] API Token 已建且含 D1/R2/Pages/Account Settings 权限(第 4 步)
+- [ ] KV 命名空间 `cuotiben-images` 已建,记下 Namespace ID(第 3 步)
+- [ ] API Token 已建且含 D1/KV/Pages/Account Settings 权限(第 4 步)
 - [ ] `wrangler whoami` 显示你的账号(第 5 步)
 - [ ] `wrangler.toml` 的 database_id 已替换(第 6 步)
 - [ ] D1 五张表已建(第 7 步)

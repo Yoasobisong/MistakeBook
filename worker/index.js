@@ -4,9 +4,12 @@
  * 桌面版是唯一写入方，网页端只读，所以这里没有冲突处理、没有版本向量，
  * 推上来什么就存什么。写接口靠 PUSH_TOKEN 保护，读接口交给 Cloudflare Access。
  *
+ * 图片存 Worker KV 而不是 R2 —— KV 免费 1GB 且开通不用绑卡。
+ * 图片按 id 命名、永不修改，正好吃 KV 的最终一致（写一次读多次）。
+ *
  * 路由：
  *   GET  /api/snapshot   拉全量元数据（网页端启动时调一次）
- *   GET  /api/img/:id    取图片，直接从 R2 流出
+ *   GET  /api/img/:id    取图片，直接从 KV 流出
  *   GET  /api/stat       题数/图数/上次推送时间
  *   POST /api/push       推送元数据（桌面版）
  *   PUT  /api/img/:id    上传图片（桌面版）
@@ -65,15 +68,15 @@ async function stat (env) {
 }
 
 async function getImage (env, id) {
-  const obj = await env.BUCKET.get('img/' + id)
-  if (!obj) return new Response('not found', { status: 404 })
+  // KV 键就是图片 id，contentType 存在 metadata 里
+  const { value, metadata } = await env.IMAGES.getWithMetadata(id, { type: 'arrayBuffer' })
+  if (value === null) return new Response('not found', { status: 404 })
 
   const h = new Headers()
-  obj.writeHttpMetadata(h)
-  h.set('etag', obj.httpEtag)
+  h.set('content-type', metadata?.contentType || 'image/webp')
   // 图片按 id 命名且永不修改，可以放心长缓存
   h.set('cache-control', 'public, max-age=31536000, immutable')
-  return new Response(obj.body, { headers: h })
+  return new Response(value, { headers: h })
 }
 
 /* ---------- 写 ---------- */
@@ -158,7 +161,8 @@ async function haveImages (req, env) {
 async function putImage (req, env, id) {
   const body = await req.arrayBuffer()
   const type = req.headers.get('content-type') || 'image/webp'
-  await env.BUCKET.put('img/' + id, body, { httpMetadata: { contentType: type } })
+  // KV put 单键上限 25MB，截图远小于这个值
+  await env.IMAGES.put(id, body, { metadata: { contentType: type } })
   return json({ ok: true, size: body.byteLength })
 }
 
@@ -176,7 +180,8 @@ async function pruneImages (env) {
   const dead = all.results.map(x => x.id).filter(id => !alive.has(id))
   if (!dead.length) return 0
 
-  for (const id of dead) await env.BUCKET.delete('img/' + id)
+  // KV 没有批量删，逐个删（死图量小，无所谓）
+  for (const id of dead) await env.IMAGES.delete(id)
   for (let i = 0; i < dead.length; i += 100) {
     const chunk = dead.slice(i, i + 100)
     const marks = chunk.map(() => '?').join(',')
