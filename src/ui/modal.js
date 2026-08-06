@@ -26,10 +26,23 @@ export function modal ({ title, body, okText = '确定', cancelText = '取消', 
     let settled = false
     const done = v => { if (settled) return; settled = true; wrap.remove(); res(v) }
 
-    wrap.addEventListener('click', e => {
-      if (onClick && onClick(e.target, wrap, done)) return
+    /** 默认点击行为：点遮罩 / ✕ / 取消 → null，确定 → onOk 返回值 */
+    const defaultClick = e => {
       if (e.target === wrap || e.target.closest('[data-x]')) done(null)
       else if (e.target.closest('[data-ok]')) done(onOk ? onOk(wrap) : true)
+    }
+
+    wrap.addEventListener('click', e => {
+      if (!onClick) { defaultClick(e); return }
+      // onClick 可能是 async（如回收站），返回值是 Promise ——
+      // 不能直接当 truthy 判断，否则 ✕/确定/遮罩全被吞掉，弹窗永远关不上。
+      const ret = onClick(e.target, wrap, done)
+      if (ret && typeof ret.then === 'function') {
+        ret.then(handled => { if (!handled) defaultClick(e) })
+          .catch(err => console.error('[modal] onClick', err))
+        return
+      }
+      if (!ret) defaultClick(e)
     })
 
     wrap.addEventListener('keydown', e => {
@@ -37,7 +50,8 @@ export function modal ({ title, body, okText = '确定', cancelText = '取消', 
         e.preventDefault()
         done(onOk ? onOk(wrap) : true)
       }
-      if (e.key === 'Escape') done(null)
+      // stopPropagation:keys.js 也有全局 Escape 处理,不拦的话一次 Esc 会关掉两层弹窗
+      if (e.key === 'Escape') { e.stopPropagation(); done(null) }
     })
 
     setTimeout(() => {

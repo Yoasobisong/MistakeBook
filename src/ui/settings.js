@@ -1,7 +1,8 @@
-/** 设置与备份弹窗（分页：通用 / AI / 备份） */
+/** 设置与备份弹窗（分页：通用 / AI / 云同步 / 备份） */
 import { $, esc } from '../core/dom.js'
 import { bytes, fmtDT } from '../core/fmt.js'
 import { S } from '../core/state.js'
+import { READONLY } from '../core/env.js'
 import { BOOK } from '../core/selectors.js'
 import { saveMeta, markBackedUp } from '../storage/repo.js'
 import { applyBackup, backupName, buildBackup, downloadBlob, readBackup } from '../storage/backup.js'
@@ -13,6 +14,7 @@ import { keyStorageSafe } from '../ai/config.js'
 import { trashCount, trashModal } from './trash.js'
 import { canAutoBackup, restoreFromFolder, runBackup } from './autobackup.js'
 import { MODES, applyTheme } from './theme.js'
+import { cloudPaneHTML, handleCloudClick, readCloud } from './cloud-settings.js'
 
 async function storageLine () {
   let used = '—'
@@ -25,10 +27,14 @@ async function storageLine () {
   return `已占用 ${used}${persisted ? ' · 已申请持久化存储' : ''}`
 }
 
+/* 网页只读版只有「通用」页 —— AI / 云同步 / 备份都是桌面版的能力 */
 const PANES = [
   { k: 'general', t: '通用' },
-  { k: 'ai', t: 'AI' },
-  { k: 'backup', t: '备份' }
+  ...(READONLY ? [] : [
+    { k: 'ai', t: 'AI' },
+    { k: 'cloud', t: '云同步' },
+    { k: 'backup', t: '备份' }
+  ])
 ]
 
 export async function settingsModal (startTab = 'general') {
@@ -66,6 +72,11 @@ export async function settingsModal (startTab = 'general') {
     <div class="tabpane ${startTab === 'ai' ? 'on' : ''}" data-pane="ai">
       ${aiPaneHTML(safeKeys)}
     </div>
+
+    ${READONLY ? '' : `
+    <div class="tabpane ${startTab === 'cloud' ? 'on' : ''}" data-pane="cloud">
+      ${cloudPaneHTML()}
+    </div>`}
 
     <div class="tabpane ${startTab === 'backup' ? 'on' : ''}" data-pane="backup">
       <div style="font-size:13.5px;line-height:1.9;color:var(--ink2)">
@@ -129,6 +140,8 @@ export async function settingsModal (startTab = 'general') {
         handleBackupAction(act.dataset.act, wrap)
         return true
       }
+      const cl = target.closest('[data-clact]')
+      if (cl) { handleCloudClick(cl); return true }
       return handleAIClick(target, wrap)
     },
     // onOk 必须同步取值：它返回之后弹窗 DOM 立刻被移除
@@ -144,7 +157,8 @@ export async function settingsModal (startTab = 'general') {
             everyDays: +$('#bkDays', w).value
           }
         : null,
-      ai: readAI(w)
+      ai: readAI(w),
+      cloud: READONLY ? null : readCloud()
     })
   })
 

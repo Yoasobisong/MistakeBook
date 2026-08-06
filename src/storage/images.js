@@ -1,8 +1,12 @@
 /**
  * 图片管线：解码 → 自动裁白边 → 缩放 → 编码 → 入库，以及取用时的 URL 缓存。
+ *
+ * 网页只读版没有本地 blob —— 图片直接走云端 API 的 URL（浏览器自己会缓存，还能蹭 CDN）。
  */
 import { uid } from '../core/dom.js'
 import { S } from '../core/state.js'
+import { READONLY } from '../core/env.js'
+import { remoteImageMeta, remoteImgURL } from './remote.js'
 import { dbGet, dbPut } from './db.js'
 
 /* ---------- 编解码基础 ---------- */
@@ -184,6 +188,8 @@ const urlCache = new Map()
 const polCache = new Map()
 
 export async function imgURL (id, kind) {
+  // 网页只读版：图片在 R2，直接给 API URL
+  if (READONLY) return remoteImgURL(id)
   const key = id + ':' + kind
   if (urlCache.has(key)) return urlCache.get(key)
   const rec = await dbGet('images', id)
@@ -203,8 +209,10 @@ export const POLARITY_LABEL = {
   color: '彩色 · 任何主题都不反相'
 }
 
-/** 这张图的底色极性 */
-export const polarityOf = id => polCache.get(id) || 'light'
+/** 这张图的底色极性（网页版从云端快照的 images 表里查） */
+export const polarityOf = id => READONLY
+  ? (remoteImageMeta(id)?.polarity || 'light')
+  : (polCache.get(id) || 'light')
 
 /** 手动纠正自动判断的结果 */
 export async function setPolarity (id, polarity) {

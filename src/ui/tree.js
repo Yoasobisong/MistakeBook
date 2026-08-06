@@ -2,6 +2,7 @@
 import { $, esc } from '../core/dom.js'
 import { on } from '../core/bus.js'
 import { S } from '../core/state.js'
+import { READONLY } from '../core/env.js'
 import {
   allChapters, allProblems, bookProblems, chOf, chTree,
   countIn, descendants, findChapter, hasKids
@@ -20,6 +21,12 @@ export function renderTree () {
   const total = ps.length
   const un = ps.filter(p => !p.chapterId).length
 
+  // 网页只读版不显示章节管理按钮
+  const acts = READONLY ? '' : `<span class="row-act">
+        <button class="btn" data-ch="add" title="新建子章节">＋</button>
+        <button class="btn" data-ch="menu" title="更多">⋯</button>
+      </span>`
+
   let h = `<div class="node ${S.chapterId === null ? 'on' : ''}" data-cid="" data-all="1">
       <span class="tw leaf"></span><span class="tt">全部题目</span><span class="cnt">${total}</span></div>`
 
@@ -33,10 +40,7 @@ export function renderTree () {
       <span class="tw ${kids ? '' : 'leaf'}" data-tw>${kids ? (c.collapsed ? '▸' : '▾') : '·'}</span>
       <span class="tt" title="${esc(c.title)}">${esc(c.title)}</span>
       <span class="cnt">${countIn(c.id) || ''}</span>
-      <span class="row-act">
-        <button class="btn" data-ch="add" title="新建子章节">＋</button>
-        <button class="btn" data-ch="menu" title="更多">⋯</button>
-      </span></div>`
+      ${acts}</div>`
   }
 
   if (un) {

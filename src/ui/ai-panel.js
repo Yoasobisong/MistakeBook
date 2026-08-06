@@ -7,6 +7,7 @@
  */
 import { $, esc } from '../core/dom.js'
 import { S, chatLog } from '../core/state.js'
+import { READONLY } from '../core/env.js'
 import { slotName } from '../core/consts.js'
 import { PROB, chName } from '../core/selectors.js'
 import { fmtDT } from '../core/fmt.js'
@@ -24,6 +25,8 @@ const EMPTY_HINT = '还没有文字版。点右上角「提取文字」，让视
    ============================================================ */
 
 export function latexActionsHTML (p, slotKey, hasImages) {
+  // 网页只读版没有「编辑 / 提取文字」
+  if (READONLY) return ''
   const has = !!(p.latex?.[slotKey] || '').trim()
   return `${has ? `<button class="btn sm" data-lxact="edit" data-slot="${slotKey}">编辑文字</button>` : ''}
     ${hasImages ? `<button class="btn sm" data-lxact="extract" data-slot="${slotKey}">${has ? '重新提取' : '提取文字'}</button>` : ''}`
@@ -32,7 +35,9 @@ export function latexActionsHTML (p, slotKey, hasImages) {
 export function latexBodyHTML (p, slotKey) {
   const txt = p.latex?.[slotKey] || ''
   if (!txt.trim()) {
-    return `<div class="lx-b empty" data-lxbody="${slotKey}"><span class="ph">${EMPTY_HINT}</span></div>`
+    return READONLY
+      ? `<div class="lx-b empty" data-lxbody="${slotKey}"><span class="ph">还没有文字版。</span></div>`
+      : `<div class="lx-b empty" data-lxbody="${slotKey}"><span class="ph">${EMPTY_HINT}</span></div>`
   }
   return `<div class="lx-b" data-lxbody="${slotKey}">${mdRender(txt)}</div>`
 }
@@ -95,6 +100,8 @@ export function openLatexEditor (slotKey) {
    ============================================================ */
 
 export function aiButtonHTML (p) {
+  // 网页只读版不提供 AI 分析（改了也没法保存）
+  if (READONLY) return ''
   const a = p.ai || {}
   const ready = isConfigured('analyze')
   const hasText = !!((p.latex?.q || '') + (p.latex?.a || '')).trim()
@@ -141,6 +148,8 @@ export async function doAnalyze (silent) {
    ============================================================ */
 
 export function chatHTML (p) {
+  // 网页只读版不提供 AI 对话
+  if (READONLY) return ''
   const msgs = chatLog.get(p.id) || []
   const ready = isConfigured('analyze')
 

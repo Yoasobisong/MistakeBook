@@ -9,10 +9,13 @@ import './styles/index.css'
 import { $, $$, debounce } from './core/dom.js'
 import { S, emptyFilters, openSecs, openShots } from './core/state.js'
 import { BOOK, PROB, chName, findProblem } from './core/selectors.js'
+import { READONLY } from './core/env.js'
 import { openDB } from './storage/db.js'
+import { loadRemote } from './storage/remote.js'
 import {
   createProblem, deleteProblem, loadAll, saveMetaSoon, saveProblem
 } from './storage/repo.js'
+import { pushToCloud } from './ui/cloud.js'
 
 import { go, render, renderAll, openProblem } from './ui/render.js'
 import { bookMenu, newBook } from './ui/topbar.js'
@@ -61,6 +64,7 @@ function bindClicks () {
       renderStats()
       return
     }
+    if (hit('#btnCloud')) { pushToCloud(); return }
     if (hit('#btnStatsBack') || hit('#btnBack')) { go('list'); render('list'); return }
     if (hit('#btnPrint')) { printFlow(false); return }
     if (hit('#btnSet')) { settingsModal(); return }
@@ -320,12 +324,12 @@ function bindForms () {
       await saveProblem(p)
       renderDetail(); render('tree', 'list')
     }
-    if (e.target.id === 'filePick') {
+    if (e.target.id === 'filePick' && !READONLY) {
       const fs = Array.from(e.target.files || [])
       e.target.value = ''
       if (fs.length) await ingest(fs, { slot: pendingSlot, merge: S.view === 'detail' })
     }
-    if (e.target.id === 'jsonPick') {
+    if (e.target.id === 'jsonPick' && !READONLY) {
       const f = e.target.files[0]
       e.target.value = ''
       if (f) importBackupFile(f)
@@ -334,6 +338,8 @@ function bindForms () {
 }
 
 function bindPaste () {
+  // 网页只读版不接粘贴录题
+  if (READONLY) return
   window.addEventListener('paste', async e => {
     const blobs = blobsFrom(e.clipboardData)
     // 在输入框里粘贴纯文本时不拦截
@@ -350,6 +356,7 @@ function bindPaste () {
 }
 
 function bindDrag () {
+  if (READONLY) return
   let depth = 0
   const hasFiles = dt => dt && Array.from(dt.types || []).includes('Files')
 
@@ -429,17 +436,46 @@ function fatal (err) {
     <span class="mono" style="font-size:11.5px;color:#94A3AC">${String(err?.message || err)}</span></div></div>`
 }
 
+/** 网页版拉不到云端数据时的整页报错 */
+function fatalWeb (err) {
+  document.body.innerHTML = `<div class="empty" style="height:100vh">
+    <div class="k">连不上云端错题本</div>
+    <div class="s">网页版的数据来自云端 API，现在拉取失败了。<br>
+    请检查网络，或稍后再试。<br>
+    <span class="mono" style="font-size:11.5px;color:#94A3AC">${String(err?.message || err)}</span></div></div>`
+}
+
 async function boot () {
-  try {
-    await openDB()
-  } catch (err) {
-    fatal(err)
-    return
+  document.body.classList.toggle('readonly', READONLY)
+
+  if (READONLY) {
+    // 网页版：不碰 IndexedDB，全量快照进内存，图片按需从 API 取
+    try {
+      await loadRemote()
+    } catch (err) {
+      fatalWeb(err)
+      return
+    }
+    // 只读版砍掉所有写入口
+    for (const id of ['btnNew', 'btnSel', 'btnAddCh', 'btnImportToc', 'btnDetDel', 'aiSlot']) {
+      const el = document.getElementById(id)
+      el?.remove()
+    }
+    $('#roBadge').classList.remove('hidden')
+  } else {
+    try {
+      await openDB()
+    } catch (err) {
+      fatal(err)
+      return
+    }
+    try { navigator.storage?.persist?.() } catch (_) {}
+    await loadAll()
+    // 桌面版 / 开发浏览器显示云同步按钮
+    $('#btnCloud').classList.remove('hidden')
+    scheduleBackup()
   }
 
-  try { navigator.storage?.persist?.() } catch (_) {}
-
-  await loadAll()
   await loadKeys()
 
   applyTheme()
@@ -451,19 +487,22 @@ async function boot () {
 
   bindClicks()
   bindForms()
-  bindPaste()
-  bindDrag()
+  if (!READONLY) {
+    bindPaste()
+    bindDrag()
+  }
   bindUnload()
   bindKeys()
   bindZoom()
 
   renderAll()
-  scheduleBackup()
 
-  // 自动备份接管之后就不用再唠叨了
-  if (!canAutoBackup() || !S.settings.backup.enabled) {
-    if (S.problems.length >= 15 && Date.now() - S.lastBackup > 12 * 864e5) {
-      setTimeout(() => toast('好久没备份了', '设置 → 备份 → 导出全部'), 1600)
+  // 备份提醒只在可写模式出现
+  if (!READONLY) {
+    if (!canAutoBackup() || !S.settings.backup.enabled) {
+      if (S.problems.length >= 15 && Date.now() - S.lastBackup > 12 * 864e5) {
+        setTimeout(() => toast('好久没备份了', '设置 → 备份 → 导出全部'), 1600)
+      }
     }
   }
 }

@@ -43,3 +43,18 @@ a{color:var(--accent)}
 textarea.inp{height:auto;padding:9px 11px;line-height:1.7;resize:vertical}
 label.fld{display:block;font-size:11.5px;color:var(--ink3);letter-spacing:.04em;margin:0 0 5px}
 .sep{height:1px;background:var(--rule);margin:12px 0}
+
+/* 顶栏「只读」徽标（网页版）与云同步按钮 */
+.badge{
+  display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;
+  font-size:11px;font-weight:600;letter-spacing:.05em;white-space:nowrap;
+  background:var(--accent-weak);color:var(--accent);border:1px solid var(--accent-weak);
+}
+.badge.hidden{display:none}
+
+/* 网页只读版：详情里只读值 */
+.ro-val{font-size:13.5px;line-height:1.7;color:var(--ink)}
+.ro-val .byai{color:var(--accent);font-size:11.5px}
+.tagbox .ph{font-size:12.5px;color:var(--ink3)}
+.det-title.ro{font-size:17px;font-weight:600;line-height:1.45;color:var(--ink);word-break:break-word}
+.no-shot{font-size:12.5px;color:var(--ink3);padding:14px 0 4px}

@@ -14,6 +14,7 @@ import {
   emptyAI, emptyLatex
 } from '../core/state.js'
 import { chOf, descendants, bookProblems, findBook, findChapter, findProblem } from '../core/selectors.js'
+import { emit } from '../core/bus.js'
 import { dbAll, dbDel, dbDelMany, dbGet, dbPut, dbPutMany } from './db.js'
 import { forgetImages } from './images.js'
 
@@ -82,12 +83,14 @@ export async function createBook (name) {
   }
   S.books.push(b)
   await dbPut('books', b)
+  emit('data:saved')
   return b
 }
 
 export async function saveBook (b) {
   b.updatedAt = now()
   await dbPut('books', b)
+  emit('data:saved')
 }
 
 /** 软删整本书：书 + 章节 + 题目打墓碑，图片真删 */
@@ -107,6 +110,7 @@ export async function deleteBook (id) {
   await dbPutMany('problems', ps)
   await dbPutMany('chapters', cs)
   await dbPut('books', b)
+  emit('data:saved')
 }
 
 /* ---------- 章节 ---------- */
@@ -120,18 +124,21 @@ export async function createChapter (bookId, parentId, title) {
   }
   S.chapters.push(c)
   await dbPut('chapters', c)
+  emit('data:saved')
   return c
 }
 
 export async function saveChapter (c) {
   c.updatedAt = now()
   await dbPut('chapters', c)
+  emit('data:saved')
 }
 
 export async function saveChapters (arr) {
   const ts = now()
   arr.forEach(c => { c.updatedAt = ts })
   await dbPutMany('chapters', arr)
+  emit('data:saved')
 }
 
 /** 软删章节及其子章节；其下题目移到「未归类」，不会丢 */
@@ -146,6 +153,7 @@ export async function deleteChapter (cid) {
 
   await dbPutMany('problems', moved)
   await dbPutMany('chapters', cs)
+  emit('data:saved')
   return { kids, moved: moved.length }
 }
 
@@ -178,18 +186,21 @@ export async function createProblem (imgRecs, slot, bookId = S.bookId, chapterId
   }
   S.problems.push(p)
   await dbPut('problems', p)
+  emit('data:saved')
   return p
 }
 
 export async function saveProblem (p) {
   p.updatedAt = now()
   await dbPut('problems', p)
+  emit('data:saved')
 }
 
 export async function saveProblems (arr) {
   const ts = now()
   arr.forEach(p => { p.updatedAt = ts })
   await dbPutMany('problems', arr)
+  emit('data:saved')
 }
 
 /** 软删题目，图片真删 */
@@ -204,6 +215,7 @@ export async function deleteProblem (id) {
   p.deletedAt = now()
   p.updatedAt = p.deletedAt
   await dbPut('problems', p)
+  emit('data:saved')
 }
 
 /** 从回收站恢复 */
@@ -217,6 +229,7 @@ export async function restoreProblem (id) {
     p.chapterId = null
   }
   await dbPut('problems', p)
+  emit('data:saved')
   return p
 }
 

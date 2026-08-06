@@ -9,9 +9,11 @@
  */
 import { S } from '../core/state.js'
 import { bytes } from '../core/fmt.js'
+import { READONLY } from '../core/env.js'
 import { dbGet } from '../storage/db.js'
 import { saveMeta } from '../storage/repo.js'
-import { emit } from '../core/bus.js'
+import { emit, on } from '../core/bus.js'
+import { debounce } from '../core/dom.js'
 import { toast } from './toast.js'
 
 const cfg = () => S.settings.cloud
@@ -136,3 +138,23 @@ export async function testCloud (override) {
     return { ok: false, error: String(e?.message || e) }
   }
 }
+
+/* ============================================================
+   自动推送 & 顶栏按钮状态（模块副作用，main.js import 即生效）
+   ============================================================ */
+
+// 本地数据有变、开了自动推送时，静默推一次。防抖 12s 把连续编辑合并成一次推送。
+on('data:saved', debounce(() => {
+  if (READONLY) return
+  if (!S.settings.cloud.autoPush || !cloudReady()) return
+  pushToCloud(true)
+}, 12000))
+
+// 顶栏云同步按钮：推送期间禁用并显示进度
+on('cloud:state', st => {
+  const b = document.getElementById('btnCloud')
+  if (!b) return
+  b.disabled = !!st.busy
+  const label = b.querySelector('span')
+  if (label) label.textContent = st.busy ? '同步中…' : '云同步'
+})

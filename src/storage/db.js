@@ -7,7 +7,11 @@
  *   chapters  章节（parentId 自嵌套）
  *   problems  题目（images 里只存图片 id 引用）
  *   images    图片 blob（full + thumb）
+ *
+ * 网页只读版不打开 IndexedDB —— 所有读写函数在 READONLY 下都是空操作，
+ * 这样即使有漏网的写调用也不会炸。
  */
+import { READONLY } from '../core/env.js'
 
 const DB_NAME = 'CuotibenDB'
 const DB_VER = 1
@@ -43,13 +47,16 @@ export function openDB () {
 const store = (s, mode) => DB.transaction(s, mode).objectStore(s)
 const req = r => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error) })
 
-export const dbGet = (s, k) => req(store(s, 'readonly').get(k))
-export const dbAll = s => req(store(s, 'readonly').getAll())
-export const dbPut = (s, v) => req(store(s, 'readwrite').put(v))
-export const dbDel = (s, k) => req(store(s, 'readwrite').delete(k))
+/* READONLY 下全部空操作：网页版根本不打开数据库 */
+const noopRes = v => Promise.resolve(v)
+
+export const dbGet = (s, k) => READONLY ? noopRes(null) : req(store(s, 'readonly').get(k))
+export const dbAll = s => READONLY ? noopRes([]) : req(store(s, 'readonly').getAll())
+export const dbPut = (s, v) => READONLY ? noopRes(null) : req(store(s, 'readwrite').put(v))
+export const dbDel = (s, k) => READONLY ? noopRes(null) : req(store(s, 'readwrite').delete(k))
 
 export function dbPutMany (s, arr) {
-  if (!arr || !arr.length) return Promise.resolve()
+  if (READONLY || !arr || !arr.length) return Promise.resolve()
   const t = DB.transaction(s, 'readwrite')
   const st = t.objectStore(s)
   arr.forEach(v => st.put(v))
@@ -57,7 +64,7 @@ export function dbPutMany (s, arr) {
 }
 
 export function dbDelMany (s, keys) {
-  if (!keys || !keys.length) return Promise.resolve()
+  if (READONLY || !keys || !keys.length) return Promise.resolve()
   const t = DB.transaction(s, 'readwrite')
   const st = t.objectStore(s)
   keys.forEach(k => st.delete(k))

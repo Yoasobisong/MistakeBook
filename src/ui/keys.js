@@ -1,6 +1,7 @@
 /** 全局键盘快捷键 */
 import { $, $$ } from '../core/dom.js'
 import { S } from '../core/state.js'
+import { READONLY } from '../core/env.js'
 import { PROB } from '../core/selectors.js'
 import { saveProblem } from '../storage/repo.js'
 import { nav, openNote, renderDetail, renderSide } from './detail.js'
@@ -36,6 +37,13 @@ export function bindKeys () {
     if (e.ctrlKey || e.metaKey || e.altKey) return
 
     if (e.key === '/') { e.preventDefault(); $('#q').focus(); $('#q').select(); return }
+    // 只读版：新建、改难度、星标、写批注这些写操作快捷键全部禁用
+    if (READONLY) {
+      if (S.view === 'detail') {
+        if (e.key === 'ArrowLeft') { nav(-1) } else if (e.key === 'ArrowRight') { nav(1) }
+      }
+      return
+    }
     if (e.key === 'n' || e.key === 'N') { e.preventDefault(); $('#btnNew').click(); return }
 
     if (S.view !== 'detail') return

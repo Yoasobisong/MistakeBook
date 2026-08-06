@@ -3,6 +3,7 @@ import { $, esc } from '../core/dom.js'
 import { on } from '../core/bus.js'
 import { ago, fmtD, pad } from '../core/fmt.js'
 import { S, openSecs, openShots } from '../core/state.js'
+import { READONLY } from '../core/env.js'
 import { DIFF_LABEL, MASTERY, NOTE_SNIPS, REASONS, SLOTS, slotName } from '../core/consts.js'
 import { PROB, byCountDesc, chName, chTree, filtered, findProblem, topicCounts } from '../core/selectors.js'
 import { mdRender } from '../core/md.js'
@@ -44,16 +45,16 @@ function shotsHTML (p, s, imgs) {
   return `<div class="shots">
     ${imgs.map((im, ix) => `<figure class="shot" data-im="${im.id}">
         <img data-img="${im.id}" data-kind="full" alt="${esc(s.nm)}">
-        <div class="shot-t">
+        ${READONLY ? '' : `<div class="shot-t">
           ${ix > 0 ? `<button class="btn sm icon" data-imv="up" data-id="${im.id}" title="上移">↑</button>` : ''}
           ${ix < imgs.length - 1 ? `<button class="btn sm icon" data-imv="dn" data-id="${im.id}" title="下移">↓</button>` : ''}
           <button class="btn sm icon" data-imv="mono" data-id="${im.id}" title="底色极性：浅底 / 深底 / 彩色">◐</button>
           <button class="btn sm" data-imv="move" data-id="${im.id}" title="移到其它区">移动</button>
           <button class="btn sm icon danger" data-imv="del" data-id="${im.id}" title="删除">✕</button>
-        </div>
+        </div>`}
         ${im.cap ? `<figcaption class="shot-cap">${esc(im.cap)}</figcaption>` : ''}
       </figure>`).join('')}
-    <div class="drop-z" data-pick="${s.k}">${imgs.length ? '再加一张 · 点击选文件，或拖图片到这里' : '粘贴 / 拖入 / 点击选择截图'}</div>
+    ${READONLY ? '' : `<div class="drop-z" data-pick="${s.k}">${imgs.length ? '再加一张 · 点击选文件，或拖图片到这里' : '粘贴 / 拖入 / 点击选择截图'}</div>`}
   </div>`
 }
 
@@ -77,34 +78,38 @@ function slotHTML (p, s) {
       <span class="nm">${s.nm}</span>
       <span class="hint">${hasText ? (p.latex[s.k].length + ' 字') : ''}${hasText && imgs.length ? ' · ' : ''}${imgs.length ? imgs.length + ' 张图' : ''}</span>
       <div class="spacer"></div>
-      ${S.armedSlot === s.k ? '<span class="hint" style="color:var(--accent)">Ctrl+V 粘到这里</span>' : ''}
+      ${!READONLY && S.armedSlot === s.k ? '<span class="hint" style="color:var(--accent)">Ctrl+V 粘到这里</span>' : ''}
       ${folded ? '' : latexActionsHTML(p, s.k, imgs.length)}
-      <button class="btn sm" data-pick="${s.k}">选文件</button>
+      ${READONLY ? '' : `<button class="btn sm" data-pick="${s.k}">选文件</button>`}
     </div>
 
     ${folded
       ? `<button class="fold" data-opensec="${s.k}">▸ 点开${s.nm}${imgs.length || hasText ? `（${[hasText ? '文字版' : '', imgs.length ? imgs.length + ' 张图' : ''].filter(Boolean).join(' + ')}）` : ''}</button>`
       : `${latexBodyHTML(p, s.k)}
          ${imgs.length
-           ? `<button class="shotfold ${shotsOpen ? 'on' : ''}" data-shotfold="${s.k}">
-                ${shotsOpen ? '▾' : '▸'} 原始截图（${imgs.length} 张）
-              </button>
-              ${shotsOpen ? shotsHTML(p, s, imgs) : ''}`
-           : `<div class="drop-z" data-pick="${s.k}">粘贴 / 拖入 / 点击选择截图</div>`}`}
+          ? `<button class="shotfold ${shotsOpen ? 'on' : ''}" data-shotfold="${s.k}">
+               ${shotsOpen ? '▾' : '▸'} 原始截图（${imgs.length} 张）
+             </button>
+             ${shotsOpen ? shotsHTML(p, s, imgs) : ''}`
+          : READONLY
+            ? '<div class="no-shot">没有截图</div>'
+            : `<div class="drop-z" data-pick="${s.k}">粘贴 / 拖入 / 点击选择截图</div>`}`}
   </section>`
 }
 
-/** 完全空的槽位：只留一个拖放区 */
+/** 完全空的槽位：只读版给个占位提示，可写版留拖放区 */
 function emptySlotHTML (p, s) {
   return `<section class="slot ${S.armedSlot === s.k ? 'armed' : ''}" data-slot="${s.k}">
     <div class="slot-h">
       <span class="nm">${s.nm}</span>
       <span class="hint">${s.hint}</span>
       <div class="spacer"></div>
-      ${S.armedSlot === s.k ? '<span class="hint" style="color:var(--accent)">Ctrl+V 粘到这里</span>' : ''}
-      <button class="btn sm" data-pick="${s.k}">选文件</button>
+      ${!READONLY && S.armedSlot === s.k ? '<span class="hint" style="color:var(--accent)">Ctrl+V 粘到这里</span>' : ''}
+      ${READONLY ? '' : `<button class="btn sm" data-pick="${s.k}">选文件</button>`}
     </div>
-    <div class="shots"><div class="drop-z" data-pick="${s.k}">粘贴 / 拖入 / 点击选择截图</div></div>
+    ${READONLY
+      ? '<div class="shots"><div class="no-shot">没有截图</div></div>'
+      : '<div class="shots"><div class="drop-z" data-pick="' + s.k + '">粘贴 / 拖入 / 点击选择截图</div></div>'}
   </section>`
 }
 
@@ -122,7 +127,9 @@ export function renderDetail () {
   $('#detMain').innerHTML = `<div class="det-wrap">
     <div class="det-h">
       <div class="tt">
-        <input class="det-title" id="pTitle" value="${esc(p.title)}" placeholder="给这道题起个名（可留空）">
+        ${READONLY
+          ? `<div class="det-title ro">${esc(p.title) || '（无标题）'}</div>`
+          : `<input class="det-title" id="pTitle" value="${esc(p.title)}" placeholder="给这道题起个名（可留空）">`}
         <div class="det-sub">
           <span>#${pad(p.no || 0)}</span><span>·</span>
           <span>${esc(p.chapterId ? chName(p.chapterId) : '未归类')}</span><span>·</span>
@@ -130,7 +137,9 @@ export function renderDetail () {
           ${p.source ? `<span>·</span><span>${esc(p.source)}</span>` : ''}
         </div>
       </div>
-      <button class="btn" id="pStar" style="${p.starred ? 'color:#B8860B;border-color:#E8DBB4;background:#FCF7E8' : ''}">${p.starred ? '★ 已标记' : '☆ 标记'}</button>
+      ${READONLY
+        ? (p.starred ? '<span class="badge" style="background:#FCF7E8;color:#B8860B;border-color:#E8DBB4">★ 已标记</span>' : '')
+        : `<button class="btn" id="pStar" style="${p.starred ? 'color:#B8860B;border-color:#E8DBB4;background:#FCF7E8' : ''}">${p.starred ? '★ 已标记' : '☆ 标记'}</button>`}
     </div>
     ${SLOTS.map(s => slotHTML(p, s)).join('')}
     ${noteSectionHTML(p)}
@@ -151,7 +160,7 @@ function noteSectionHTML (p) {
   return `<section class="slot">
     <div class="slot-h"><span class="nm">批注</span>
       <span class="hint">错因、正解思路 —— 打字记下来</span><div class="spacer"></div>
-      ${folded ? '' : '<button class="btn sm" data-editnote>编辑</button>'}</div>
+      ${folded || READONLY ? '' : '<button class="btn sm" data-editnote>编辑</button>'}</div>
     ${folded
       ? '<button class="fold" data-opensec="note">▸ 点开批注</button>'
       : `<div id="noteHost">${noteViewHTML(p)}</div>`}
@@ -160,6 +169,11 @@ function noteSectionHTML (p) {
 
 function noteViewHTML (p) {
   const h = mdRender(p.note)
+  if (READONLY) {
+    return h
+      ? `<div class="note-view">${h}</div>`
+      : '<div class="note-view ph">还没有批注。</div>'
+  }
   return h
     ? `<div class="note-view" data-editnote>${h}</div>`
     : '<div class="note-view ph" data-editnote>还没有批注。点这里开始写 —— 建议至少记清「为什么错」和「正确的切入点」。</div>'
@@ -217,6 +231,27 @@ export function renderSide () {
   const p = PROB()
   if (!p) return
 
+  // 网页只读版：侧栏只展示，不提供任何编辑控件
+  if (READONLY) {
+    $('#detSide').innerHTML = `
+      <div class="mt"><div class="mt-l">难度 · ${DIFF_LABEL[p.difficulty || 3]}${p.difficultyManual ? '' : (p.ai?.difficulty ? ' <span class="byai">AI</span>' : '')}</div>
+        ${!p.difficultyManual && p.ai?.difficultyReason ? `<div class="why">${esc(p.ai.difficultyReason)}</div>` : ''}</div>
+      <div class="mt"><div class="mt-l">掌握程度</div><div class="ro-val">${masteryLabel(p.mastery)}</div></div>
+      <div class="mt"><div class="mt-l">类型</div><div class="ro-val">${p.kind === 'good' ? '好题' : '错题'}</div></div>
+      <div class="sep"></div>
+      <div class="mt"><div class="mt-l">错因</div>
+        <div class="tagbox">${(p.reasons || []).length ? (p.reasons || []).map(r => `<span class="t">${esc(r)}</span>`).join('') : '<span class="ph">无</span>'}</div></div>
+      <div class="mt"><div class="mt-l">知识点</div>
+        <div class="tagbox k">${(p.topics || []).length ? (p.topics || []).map(t => `<span class="t">${esc(t)}</span>`).join('') : '<span class="ph">无</span>'}</div></div>
+      <div class="sep"></div>
+      <div class="mt"><div class="mt-l">所属章节</div><div class="ro-val">${esc(p.chapterId ? chName(p.chapterId) : '未归类')}</div></div>
+      ${p.source ? `<div class="mt"><div class="mt-l">来源（页码 / 卷次）</div><div class="ro-val">${esc(p.source)}</div></div>` : ''}
+      <div class="sep"></div>
+      <div class="mt"><div class="mt-l">复习</div>
+        <div class="ro-val">${p.reviewCount ? `已复习 ${p.reviewCount} 次` : '还没复习过'}${p.lastReviewAt ? `<br><span class="mono" style="font-size:11.5px;color:var(--ink3)">上次 ${fmtD(p.lastReviewAt)} · ${ago(p.lastReviewAt)}</span>` : ''}</div></div>`
+    return
+  }
+
   const chs = chTree(S.bookId)
   const known = topicCounts()
   const topSug = byCountDesc(known).filter(t => !(p.topics || []).includes(t)).slice(0, 6)
@@ -263,7 +298,7 @@ export function renderSide () {
 
 export async function imgAct (a, imgId) {
   const p = PROB()
-  if (!p) return
+  if (!p || READONLY) return
   const i = p.images.findIndex(x => x.id === imgId)
   if (i < 0) return
   const cur = p.images[i]

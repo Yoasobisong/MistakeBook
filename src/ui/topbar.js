@@ -2,6 +2,7 @@
 import { $, esc } from '../core/dom.js'
 import { on } from '../core/bus.js'
 import { S } from '../core/state.js'
+import { READONLY } from '../core/env.js'
 import { BOOK, allBooks, allProblems, bookProblems } from '../core/selectors.js'
 import { createBook, deleteBook, saveBook, saveMetaSoon } from '../storage/repo.js'
 import { popover, closePop } from './popover.js'
@@ -26,10 +27,13 @@ export function bookMenu (anchor) {
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(b.name)}</span>
       <span class="ct">${bookProblems(b.id).length}</span></button>`).join('')
 
-  popover(anchor, items + `<div class="pop-sep"></div>
+  // 网页只读版没有书籍管理
+  const mgmt = READONLY ? '' : `<div class="pop-sep"></div>
     <button class="pop-i" data-a="new">＋ 新建书籍</button>
     ${S.bookId ? `<button class="pop-i" data-a="ren">重命名当前书籍</button>
-    <button class="pop-i" data-a="del" style="color:var(--red)">删除当前书籍</button>` : ''}`,
+    <button class="pop-i" data-a="del" style="color:var(--red)">删除当前书籍</button>` : ''}`
+
+  popover(anchor, items + mgmt,
   async (a, id) => {
     closePop()
     if (a === 'open') {
