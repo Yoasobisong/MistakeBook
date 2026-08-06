@@ -27,6 +27,8 @@ const EMPTY_HINT = '还没有文字版。点右上角「提取文字」，让视
 export function latexActionsHTML (p, slotKey, hasImages) {
   // 网页只读版没有「编辑 / 提取文字」
   if (READONLY) return ''
+  // 答案解析只看截图，不提供文字提取 / 编辑
+  if (slotKey === 'a') return ''
   const has = !!(p.latex?.[slotKey] || '').trim()
   return `${has ? `<button class="btn sm" data-lxact="edit" data-slot="${slotKey}">编辑文字</button>` : ''}
     ${hasImages ? `<button class="btn sm" data-lxact="extract" data-slot="${slotKey}">${has ? '重新提取' : '提取文字'}</button>` : ''}`
@@ -104,7 +106,7 @@ export function aiButtonHTML (p) {
   if (READONLY) return ''
   const a = p.ai || {}
   const ready = isConfigured('analyze')
-  const hasText = !!((p.latex?.q || '') + (p.latex?.a || '')).trim()
+  const hasText = !!((p.latex?.q || '')).trim()
 
   return `<div class="mt">
     <div class="mt-l">AI</div>

@@ -30,7 +30,11 @@ export async function loadRemote () {
   S.settings = mergeSettings(null)
 
   imageMeta.clear()
-  for (const im of d.images || []) imageMeta.set(im.id, im)
+  // 云端只存答案/补充的图（题目截图不上传），这里再过滤一道，防止旧快照残留
+  for (const im of d.images || []) {
+    if (im.slot === 'q') continue
+    imageMeta.set(im.id, im)
+  }
 
   if (!S.bookId || !S.books.some(b => b.id === S.bookId)) {
     S.bookId = S.books[0]?.id || null

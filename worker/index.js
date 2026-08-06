@@ -115,7 +115,14 @@ async function push (req, env) {
     const rows = body[table] || []
     if (!rows.length) continue
     const stmt = upsertStmt(env, table)
-    for (const r of rows) batch.push(bindRow(stmt, table, r))
+    for (const r of rows) {
+      // 题目(q)截图不上云，云端只留答案/补充的图 ——
+      // 把题目 images 里的 q 槽记录剥掉，网页端就不会去拉这些图
+      if (table === 'problems' && Array.isArray(r.images)) {
+        r.images = r.images.filter(im => im.slot !== 'q')
+      }
+      batch.push(bindRow(stmt, table, r))
+    }
   }
 
   const imgs = body.images || []
@@ -181,6 +188,8 @@ async function pruneImages (env) {
   if (!dead.length) return 0
 
   // KV 没有批量删，逐个删（死图量小，无所谓）
+  // 注意：prune 会顺带清掉历史上传过的题目(q)截图 ——
+  // 网页端只显示题目文字，这些图云端不再需要
   for (const id of dead) await env.IMAGES.delete(id)
   for (let i = 0; i < dead.length; i += 100) {
     const chunk = dead.slice(i, i + 100)

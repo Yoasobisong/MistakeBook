@@ -88,7 +88,6 @@ export const CHAT_SYS = `你是一位耐心的理科助教，正在和学生讨�
 
 export function chatContext({ latex, topics }) {
   const parts = ['【这道题】\n' + (latex.q || '（题干还没有转录出文字）')]
-  if (latex.a) parts.push('\n【标准解析】\n' + latex.a)
   if (latex.x) parts.push('\n【补充材料】\n' + latex.x)
   if (topics?.length) parts.push('\n【已标注的考点】\n' + topics.join('、'))
   return parts.join('\n')
@@ -108,7 +107,6 @@ export function analyzeUser({ book, chapters, knownTopics, latex, note }) {
   parts.push(`\n【本书已有考点，含义相同必须复用】\n${knownTopics.length ? knownTopics.join('、') : '（还没有，这是第一道题）'}`)
 
   parts.push(`\n【题目】\n${latex.q || '（题干还没有转录出文字）'}`)
-  if (latex.a) parts.push(`\n【答案解析】\n${latex.a}`)
   if (latex.x) parts.push(`\n【补充材料】\n${latex.x}`)
   if (note) parts.push(`\n【学生已写的批注，可作为判断线索】\n${note}`)
 

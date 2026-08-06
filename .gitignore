@@ -21,12 +21,19 @@ electron-builder.env
 *.swp
 *.swo
 
+# Claude 工作目录
+.claude/
+
 # 系统
 .DS_Store
 Thumbs.db
 
 # 本地 Ollama
 ollama/
+
+# Cloudflare Worker 本地配置（含真实 D1/KV ID，勿提交）
+worker/wrangler.toml
+worker/.dev.vars
 
 # 其他
 task.md

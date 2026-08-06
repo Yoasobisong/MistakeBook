@@ -57,11 +57,14 @@ export async function pushToCloud (silent) {
   try {
     emit('cloud:state', { busy: true, text: '正在比对图片…' })
 
-    // 活着的题目引用到的全部图片
+    // 活着的题目引用的图片 —— 只传答案解析(a)和补充(x)的截图，
+    // 题目(q)截图不上云（网页端题目只显示提取出的文字）
     const wanted = new Set()
     for (const p of S.problems) {
       if (p.deletedAt) continue
-      for (const im of p.images || []) wanted.add(im.id)
+      for (const im of p.images || []) {
+        if (im.slot !== 'q') wanted.add(im.id)
+      }
     }
 
     const ids = [...wanted]

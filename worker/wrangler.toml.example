@@ -1,0 +1,26 @@
+# Cloudflare Worker 配置模板。
+#
+# 复制本文件为 wrangler.toml（已加入 .gitignore，不会提交），
+# 然后在 Cloudflare 面板创建 D1 数据库和 KV 命名空间，把真实 ID 填进来：
+#
+#   cp wrangler.toml.example wrangler.toml
+#
+# 面板路径：
+#   D1 数据库：Workers & Pages → D1 → 创建「cuotiben」→ 复制 Database ID
+#   KV 命名空间：存储和数据库 → KV → 创建「cuotiben-images」→ 复制 Namespace ID
+#
+# PUSH_TOKEN 不要写在这里 —— 用 `wrangler secret put PUSH_TOKEN` 设置，
+# 免得跟着仓库一起进 GitHub。
+
+name = "cuotiben-api"
+main = "index.js"
+compatibility_date = "2026-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "cuotiben"
+database_id = "PUT_YOUR_D1_DATABASE_ID_HERE"
+
+[[kv_namespaces]]
+binding = "IMAGES"
+id = "PUT_YOUR_KV_NAMESPACE_ID_HERE"
