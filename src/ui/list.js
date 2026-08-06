@@ -29,8 +29,7 @@ function previewMd (txt, maxChars = 200) {
 }
 
 export function cardHTML (p) {
-  // 封面只用题目(q)槽的图；网页端题目图不上云，没有就回落到文字/占位
-  const q = p.images.find(i => i.slot === 'q')
+  const q = p.images.find(i => i.slot === 'q') || p.images[0]
   const txt = (p.latex?.q || '').trim()
   const rs = (p.reasons || []).slice(0, 3)
   const label = p.title ? esc(p.title) : (rs.length ? rs.map(esc).join(' · ') : '待整理')

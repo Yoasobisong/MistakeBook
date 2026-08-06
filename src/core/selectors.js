@@ -109,8 +109,8 @@ export function filtered () {
     if (f.noAnswer && p.images.some(i => i.slot === 'a')) return false
     // 「未提取」只针对有截图的题 —— 空题还没录内容，不算待处理
     if (f.noText && (!p.images.length || (p.latex?.q || '').trim())) return false
-    // 「未分析」要求已经有文字，否则分析也无从谈起（答案不提取文字，只认题干）
-    if (f.noAI && (!(p.latex?.q || '').trim() || p.ai?.analyzedAt)) return false
+    // 「未分析」要求已经有文字，否则分析也无从谈起
+    if (f.noAI && (!(p.latex?.q || p.latex?.a || '').trim() || p.ai?.analyzedAt)) return false
     if (f.diff.length && !f.diff.includes(p.difficulty)) return false
     if (f.mastery.length && !f.mastery.includes(p.mastery | 0)) return false
     if (f.reasons.length && !f.reasons.every(r => (p.reasons || []).includes(r))) return false
@@ -119,7 +119,7 @@ export function filtered () {
       const hay = [
         p.title, p.note, p.source, chName(p.chapterId),
         (p.reasons || []).join(' '), (p.topics || []).join(' '),
-        lx.q, lx.x, p.ai?.summary
+        lx.q, lx.a, lx.x, p.ai?.summary
       ].join(' ').toLowerCase()
       if (!hay.includes(q)) return false
     }

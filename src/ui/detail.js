@@ -62,13 +62,10 @@ function shotsHTML (p, s, imgs) {
  * 文字版是主体，截图退居可折叠区。
  * 截图是固定比例的位图，排版上远不如文字灵活；
  * 但没提取出文字之前截图仍然默认展开，否则这一区就是空的。
- *
- * 答案解析(a)特殊：只看截图，不渲染文字版，也不提供提取/编辑。
  */
 function slotHTML (p, s) {
   const imgs = p.images.filter(i => i.slot === s.k)
-  const isAnswer = s.k === 'a'
-  const hasText = !isAnswer && !!(p.latex?.[s.k] || '').trim()
+  const hasText = !!(p.latex?.[s.k] || '').trim()
   if (!imgs.length && !hasText) return emptySlotHTML(p, s)
 
   // 题干永远展开；答案、补充默认折叠，避免重做时被剧透
@@ -88,16 +85,14 @@ function slotHTML (p, s) {
 
     ${folded
       ? `<button class="fold" data-opensec="${s.k}">▸ 点开${s.nm}${imgs.length || hasText ? `（${[hasText ? '文字版' : '', imgs.length ? imgs.length + ' 张图' : ''].filter(Boolean).join(' + ')}）` : ''}</button>`
-      : `${isAnswer
-          ? ''
-          : latexBodyHTML(p, s.k)}
+      : `${latexBodyHTML(p, s.k)}
          ${imgs.length
           ? `<button class="shotfold ${shotsOpen ? 'on' : ''}" data-shotfold="${s.k}">
                ${shotsOpen ? '▾' : '▸'} 原始截图（${imgs.length} 张）
              </button>
              ${shotsOpen ? shotsHTML(p, s, imgs) : ''}`
           : READONLY
-            ? `<div class="no-shot">${s.k === 'q' ? '题目文字未提取' : '没有截图'}</div>`
+            ? '<div class="no-shot">没有截图</div>'
             : `<div class="drop-z" data-pick="${s.k}">粘贴 / 拖入 / 点击选择截图</div>`}`}
   </section>`
 }
@@ -113,7 +108,7 @@ function emptySlotHTML (p, s) {
       ${READONLY ? '' : `<button class="btn sm" data-pick="${s.k}">选文件</button>`}
     </div>
     ${READONLY
-      ? `<div class="shots"><div class="no-shot">${s.k === 'q' ? '题目文字未提取' : '没有截图'}</div></div>`
+      ? '<div class="shots"><div class="no-shot">没有截图</div></div>'
       : '<div class="shots"><div class="drop-z" data-pick="' + s.k + '">粘贴 / 拖入 / 点击选择截图</div></div>'}
   </section>`
 }

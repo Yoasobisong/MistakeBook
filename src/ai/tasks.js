@@ -53,9 +53,6 @@ const ENGINES = { vision: extractWithVision }
 
 /** 提取某个槽位的图片为 LaTeX 文本，写入 p.latex[slotKey] */
 export async function extractSlot (p, slotKey, ctx, onChunk) {
-  if (slotKey === 'a') {
-    return { ok: false, error: '答案解析只看截图，不提取文字' }
-  }
   if (!isConfigured('extract')) {
     return { ok: false, error: '提取槽还没配好模型，去「设置 → AI」配置' }
   }
@@ -85,8 +82,8 @@ export async function analyzeProblem (p, ctx) {
   if (!isConfigured('analyze')) {
     return { ok: false, error: '分析槽还没配好模型，去「设置 → AI」配置' }
   }
-  if (!p.latex.q) {
-    return { ok: false, error: '还没有文字内容 —— 先提取题干 LaTeX' }
+  if (!p.latex.q && !p.latex.a) {
+    return { ok: false, error: '还没有文字内容 —— 先提取 LaTeX' }
   }
 
   const id = uid()
@@ -177,8 +174,8 @@ export async function chatAbout (p, text) {
    批量：排进队列
    ============================================================ */
 
-/** 提取一批题目里所有有图的槽位。答案(a)不提取 —— 解析只看截图 */
-export function queueExtract (problems, slots = ['q', 'x']) {
+/** 提取一批题目里所有有图的槽位 */
+export function queueExtract (problems, slots = ['q', 'a', 'x']) {
   const jobs = []
   for (const p of problems) {
     for (const k of slots) {
@@ -207,5 +204,5 @@ export async function autoPipeline (problems) {
   await queueExtract(list)
 
   if (!cfg.autoAnalyze || !isConfigured('analyze')) return
-  await queueAnalyze(list.filter(p => p.latex.q))
+  await queueAnalyze(list.filter(p => p.latex.q || p.latex.a))
 }

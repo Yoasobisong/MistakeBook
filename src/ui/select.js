@@ -156,7 +156,7 @@ async function bulkExtract (list) {
 
 async function bulkAnalyze (list) {
   if (!isConfigured('analyze')) { toast('分析槽还没配模型', '设置 → AI'); return }
-  const targets = list.filter(p => (p.latex?.q || '').trim())
+  const targets = list.filter(p => (p.latex?.q || p.latex?.a || '').trim())
   if (!targets.length) { toast('选中的题都还没有文字版', '先批量提取'); return }
   if (targets.length < list.length) {
     toast(`${list.length - targets.length} 题没有文字版，已跳过`)
