@@ -39,7 +39,7 @@ export function latexBodyHTML (p, slotKey) {
       ? `<div class="lx-b empty" data-lxbody="${slotKey}"><span class="ph">还没有文字版。</span></div>`
       : `<div class="lx-b empty" data-lxbody="${slotKey}"><span class="ph">${EMPTY_HINT}</span></div>`
   }
-  return `<div class="lx-b" data-lxbody="${slotKey}">${mdRender(txt)}</div>`
+  return `<div class="lx-b" data-lxbody="${slotKey}">${mdRender(txt, { repairMath: true })}</div>`
 }
 
 export async function doExtract (slotKey) {
@@ -89,7 +89,7 @@ export function openLatexEditor (slotKey) {
       await saveProblem(p)
       render('list')
     }
-    host.innerHTML = mdRender(p.latex[slotKey]) || `<span class="ph">${EMPTY_HINT}</span>`
+    host.innerHTML = mdRender(p.latex[slotKey], { repairMath: true }) || `<span class="ph">${EMPTY_HINT}</span>`
     host.classList.toggle('empty', !p.latex[slotKey].trim())
   })
   ta.addEventListener('keydown', e => { if (e.key === 'Escape') ta.blur() })

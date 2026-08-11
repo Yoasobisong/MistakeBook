@@ -65,6 +65,78 @@ function renderMath (raw) {
   }
 }
 
+/* ============================================================
+   缺失定界符的兜底修复
+
+   小视觉模型有个顽固毛病：LaTeX 写得好好的，就是忘了套 $。
+   提示词里写死了这条规则也压不住，同一个模型时好时坏。
+   一旦漏了，整段公式就以纯文本裸奔（e^{b_n}=a_n>0 原样显示）。
+
+   这里**只在渲染时补**，不改库里的原文 —— 补错了顶多这一次显示成
+   KaTeX 报错，重新提取或手动改都还来得及，不会把数据写坏。
+
+   判定的立足点：汉字和全角标点绝不可能出现在公式内部，
+   所以它们天然就是公式的边界。按这个切段，每段再看有没有 LaTeX 特征。
+   ============================================================ */
+
+/**
+ * 汉字与全角标点 —— 出现即正文，天然是公式的边界。
+ *
+ * 按码点判断，而不是把字符直接写进正则字符类：
+ * 这一段要覆盖的 U+3000 是全角空格，**看上去就是个普通空白**，
+ * 写进源码迟早被某个编辑器或格式化工具吃掉，届时正则会静默变义。
+ * print.js 里那个藏了很久的 NUL 就是前车之鉴。
+ */
+function isCJK (ch) {
+  const c = ch.charCodeAt(0)
+  return (c >= 0x3000 && c <= 0x303F) || // 中文标点 。、《》【】
+         (c >= 0x3400 && c <= 0x4DBF) || // 扩展 A 区汉字
+         (c >= 0x4E00 && c <= 0x9FFF) || // 基本汉字
+         (c >= 0xFF00 && c <= 0xFFEF)    // 全角字母与标点 ，？！
+}
+
+/** LaTeX 命令、上下标 —— 有其一才认为这段是公式，避免把「(1)」「10.」也包起来 */
+const MATHY_RE = /\\[a-zA-Z]+|[\^_]\{|[\^_][A-Za-z0-9]/
+
+/** 已经有任意一种定界符就不碰：宁可不管，也别去修一段修了一半的文本 */
+const HAS_DELIM_RE = /\$|\\\(|\\\[/
+
+/** 把一段不含汉字的文本包进 $，前后的空白与句读留在公式外面 */
+function wrapRun (s) {
+  if (!MATHY_RE.test(s)) return s
+  let a = 0
+  let b = s.length
+  // 开头只吃空白和句读；'-' 之类可能是公式的一部分，不能动
+  while (a < b && /[\s,;:]/.test(s[a])) a++
+  while (b > a && /[\s,;:.]/.test(s[b - 1])) b--
+  const core = s.slice(a, b)
+  if (!core || !MATHY_RE.test(core)) return s
+  return s.slice(0, a) + '$' + core + '$' + s.slice(b)
+}
+
+function repairLine (line) {
+  // 图形描述和表格行原样放过：里面的 = 号会被误判成公式
+  if (/^\s*\[图/.test(line) || /^\s*\|/.test(line)) return line
+
+  let out = ''
+  let buf = ''
+  for (const ch of line) {
+    if (isCJK(ch)) { out += wrapRun(buf) + ch; buf = '' } else buf += ch
+  }
+  return out + wrapRun(buf)
+}
+
+export function repairMath (src) {
+  const s = String(src || '')
+  if (HAS_DELIM_RE.test(s) || !MATHY_RE.test(s)) return s
+
+  let fence = false
+  return s.split('\n').map(line => {
+    if (/^\s*```/.test(line)) { fence = !fence; return line }
+    return fence ? line : repairLine(line)
+  }).join('\n')
+}
+
 /**
  * 渲染结果缓存。键就是源文本 —— mdRender 是纯函数，同样输入必然同样输出。
  * 列表页反复重画（每敲一个搜索字符就重画一次）时，
@@ -73,13 +145,23 @@ function renderMath (raw) {
 const cache = new Map()
 const CACHE_MAX = 600
 
-export function mdRender (src) {
+/**
+ * @param opts.repairMath 源文本缺 $ 时自动补齐。只给 AI 提取出来的题目正文用；
+ *   批注和对话是人写的，"价格 a=5" 这种不该被当成公式。
+ */
+export function mdRender (src, opts) {
   if (!src || !src.trim()) return ''
 
-  const hit = cache.get(src)
+  const fix = !!opts?.repairMath
+  // 同一段文本补与不补结果不同，缓存键必须带上这个开关。
+  // ⚠ 下面这行的前缀是个不可见字符，功能正确但源码里看不出来 ——
+  //   清理办法见 PH 那条注释，改成 String.fromCharCode 形式即可
+  const key = fix ? '' + src : src
+
+  const hit = cache.get(key)
   if (hit !== undefined) return hit
 
-  const html = build(src)
+  const html = build(fix ? repairMath(src) : src)
 
   // 超量就丢掉最早插入的四分之一。Map 天然保持插入顺序，够用了
   if (cache.size >= CACHE_MAX) {
@@ -89,7 +171,7 @@ export function mdRender (src) {
       if (++i >= CACHE_MAX / 4) break
     }
   }
-  cache.set(src, html)
+  cache.set(key, html)
   return html
 }
 

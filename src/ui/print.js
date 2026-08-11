@@ -60,7 +60,7 @@ function collect (single, opt) {
  */
 function slotBody (x, slotKey, opt) {
   const txt = (x.latex?.[slotKey] || '').trim()
-  if (opt.format === 'text' && txt) return `<div class="pr-tex">${mdRender(txt)}</div>`
+  if (opt.format === 'text' && txt) return `<div class="pr-tex">${mdRender(txt, { repairMath: true })}</div>`
   return x.images
     .filter(im => im.slot === slotKey)
     .map(im => `<img data-img="${im.id}" data-kind="full">`)
