@@ -14,8 +14,9 @@ export function defaultSettings () {
     zoom: 1,
     /** 自动备份，仅 Electron 下可用 */
     backup: { enabled: false, dir: '', keep: 5, everyDays: 1, lastAt: 0 },
-    /** 云端同步：桌面版单向推送，网页端只读 */
-    cloud: { apiBase: '', token: '', autoPush: false, lastPush: 0 },
+    /** 云端同步：桌面版单向推送，网页端只读。
+     *  qCleanedAt 标记「已清理过云端残留的题目截图引用」，是一次性迁移，不是配置 */
+    cloud: { apiBase: '', token: '', autoPush: false, lastPush: 0, qCleanedAt: 0 },
     /** 'auto' 跟随系统 | 'light' | 'dark' */
     theme: 'auto',
     ai: {

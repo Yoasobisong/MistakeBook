@@ -30,6 +30,10 @@ function reviveProblem (row) {
   for (const f of JSON_FIELDS) {
     try { p[f] = JSON.parse(row[f] || 'null') } catch (_) { p[f] = null }
   }
+  // 题目(q)截图不上云。写入时已经剥过一道，这里出库时再剥一道 ——
+  // 早期版本推上来的老行里仍然残留着 q 槽引用，那些图早被 prune 清掉了，
+  // 不剥的话网页端会照着渲染出一排取不到的碎图标
+  if (Array.isArray(p.images)) p.images = p.images.filter(im => im.slot !== 'q')
   p.starred = !!row.starred
   p.difficultyManual = !!row.difficultyManual
   return p

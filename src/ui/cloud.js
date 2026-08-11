@@ -51,6 +51,19 @@ export async function pushToCloud (silent) {
 
   const c = cfg()
   const since = c.lastPush || 0
+  /**
+   * 水位线必须取「开始推送」的时刻，不能等推完再 Date.now()。
+   *
+   * 图片上传可能跑几分钟，这期间的任何编辑都掉进一条缝里：
+   * 它不在下面这份 delta 里（delta 是此刻筛的），又会被下次的 since 过滤掉
+   * （updatedAt < 结束时刻），于是永远推不上去。
+   * 删除的墓碑尤其致命 —— 本地删了云端还在，而它再也不会被改动，
+   * updatedAt 永远追不上水位线，这个不一致是永久的。
+   *
+   * 记开始时刻，最坏只是下次把同一条重复推一遍；
+   * worker 那边是 INSERT OR REPLACE，完全幂等。
+   */
+  const startedAt = Date.now()
   const delta = changedSince(since)
   const total = delta.books.length + delta.chapters.length + delta.problems.length
 
@@ -106,22 +119,30 @@ export async function pushToCloud (silent) {
     emit('cloud:state', { busy: true, text: '推送元数据…' })
     const r = await postJSON('/api/push', { ...delta, images: imgMeta })
 
-    // 每次推送后都清理云端孤儿图：
-    //  1) 本地已删题目的图
-    //  2) 历史上传过的题目(q)截图 —— 现在题目图不上云，云端 problems.images 里
-    //     如果还残留 q 槽引用，prune 会把它们当"活图"保留，所以要先把引用剥掉
-    //     再让 prune 判断（worker 的 prune 只看云端 problems 表里的引用）
-    const cleaned = []
-    for (const p of S.problems) {
-      if (p.deletedAt) continue
-      cleaned.push({ ...p, images: (p.images || []).filter(im => im.slot !== 'q') })
-    }
-    if (cleaned.length) {
-      await postJSON('/api/push', { problems: cleaned }).catch(() => {})
+    /**
+     * 一次性清理：早期版本连题目(q)截图的引用一起推过，云端老行里还留着。
+     * 不清掉的话，网页端会为这些取不到的图渲染出一排碎图标。
+     *
+     * 这段以前是**每次同步都跑**，把上面的增量推送整个抵消掉了 ——
+     * 几百题的话每次白传 ~1MB。它其实是个数据迁移，跑一次就够，
+     * 所以拿 qCleanedAt 记住。失败就让它抛出去，标记不置位，下次再来。
+     *
+     * 新数据不需要它：worker 写入时剥 q、prune 判断时跳过 q、
+     * snapshot 返回时再剥一道，三层都挡住了。
+     */
+    if (!c.qCleanedAt) {
+      const cleaned = S.problems
+        .filter(p => !p.deletedAt)
+        .map(p => ({ ...p, images: (p.images || []).filter(im => im.slot !== 'q') }))
+      if (cleaned.length) {
+        emit('cloud:state', { busy: true, text: '清理云端历史数据…' })
+        await postJSON('/api/push', { problems: cleaned })
+      }
+      c.qCleanedAt = startedAt
     }
     await postJSON('/api/prune', {}).catch(() => {})
 
-    c.lastPush = Date.now()
+    c.lastPush = startedAt
     await saveMeta()
     emit('cloud:state', { busy: false })
 
