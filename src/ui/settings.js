@@ -12,6 +12,7 @@ import { renderAll } from './render.js'
 import { aiPaneHTML, applyAI, handleAIClick, readAI } from './ai-settings.js'
 import { keyStorageSafe } from '../ai/config.js'
 import { trashCount, trashModal } from './trash.js'
+import { keysPaneHTML } from './keys.js'
 import { canAutoBackup, restoreFromFolder, runBackup } from './autobackup.js'
 import { MODES, applyTheme } from './theme.js'
 import { cloudPaneHTML, handleCloudClick, readCloud } from './cloud-settings.js'
@@ -27,14 +28,16 @@ async function storageLine () {
   return `已占用 ${used}${persisted ? ' · 已申请持久化存储' : ''}`
 }
 
-/* 网页只读版只有「通用」页 —— AI / 云同步 / 备份都是桌面版的能力 */
+/* 网页只读版只有「通用」和「快捷键」两页 —— AI / 云同步 / 备份都是桌面版的能力。
+   快捷键页两边都留：只读版也能翻页、看答案、缩放，说明会自动只列那边能用的 */
 const PANES = [
   { k: 'general', t: '通用' },
   ...(READONLY ? [] : [
     { k: 'ai', t: 'AI' },
     { k: 'cloud', t: '云同步' },
     { k: 'backup', t: '备份' }
-  ])
+  ]),
+  { k: 'keys', t: '快捷键' }
 ]
 
 export async function settingsModal (startTab = 'general') {
@@ -61,12 +64,11 @@ export async function settingsModal (startTab = 'general') {
             ${[1200, 1600, 2000, 2600].map(w => `<option value="${w}" ${S.settings.maxW === w ? 'selected' : ''}>${w}px</option>`).join('')}
           </select>
           <span style="color:var(--ink3);font-size:12px">越大越清晰，占用也越大</span></div>
-        <div class="sep"></div>
-        <div class="mt-l" style="margin-bottom:6px">快捷键</div>
-        <div class="mono" style="font-size:12px;color:var(--ink3);line-height:2">
-          Ctrl+V 粘贴截图录题　·　/ 搜索　·　N 新建空白题<br>
-          详情页：1–5 设难度　·　S 星标　·　E 写批注　·　←/→ 上下一题　·　Esc 返回</div>
       </div>
+    </div>
+
+    <div class="tabpane ${startTab === 'keys' ? 'on' : ''}" data-pane="keys">
+      ${keysPaneHTML()}
     </div>
 
     <div class="tabpane ${startTab === 'ai' ? 'on' : ''}" data-pane="ai">

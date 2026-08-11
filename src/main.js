@@ -21,7 +21,7 @@ import { pushToCloud } from './ui/cloud.js'
 import { go, render, renderAll, openProblem } from './ui/render.js'
 import { bookMenu, newBook } from './ui/topbar.js'
 import { addChapter, chapterAct, chapterMenu, toggleCollapse } from './ui/tree.js'
-import { imgAct, insertSnip, nav, openNote, renderDetail, renderSide } from './ui/detail.js'
+import { imgAct, insertSnip, nav, openNote, removeTag, renderDetail, renderSide } from './ui/detail.js'
 import { renderStats } from './ui/stats.js'
 import { printFlow } from './ui/print.js'
 import { settingsModal, importBackupFile } from './ui/settings.js'
@@ -226,16 +226,8 @@ function bindClicks () {
     if (kk) { p.kind = kk.dataset.kind; await saveProblem(p); renderSide(); render('list'); return }
 
     const rmr = hit('[data-rmr]'); const rmt = hit('[data-rmt]')
-    if (rmr) {
-      p.reasons = p.reasons.filter(x => x !== rmr.dataset.rmr)
-      await saveProblem(p); renderSide(); render('list', 'filters')
-      return
-    }
-    if (rmt) {
-      p.topics = p.topics.filter(x => x !== rmt.dataset.rmt)
-      await saveProblem(p); renderSide(); render('list')
-      return
-    }
+    if (rmr) { await removeTag('reason', rmr.dataset.rmr); return }
+    if (rmt) { await removeTag('topic', rmt.dataset.rmt); return }
 
     const ar = hit('[data-addreason]'); const at = hit('[data-addtopic]')
     if (ar) {

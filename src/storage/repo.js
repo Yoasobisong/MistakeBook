@@ -170,15 +170,35 @@ export async function normalizeOrders (bookId = S.bookId) {
 
 /* ---------- 题目 ---------- */
 
+/**
+ * 这本书下一个可用的题号 —— 取最小的空号。
+ *
+ * 不用「历史最大号 +1」是因为那样会越删越稀疏：1 2 3 删掉 2，
+ * 下一道就成了 4，留下一个永远补不上的洞。这里让新题补回空位。
+ *
+ * 只统计活着的题，回收站里的**不占号** —— 否则「删了却还占着号」
+ * 等于没删。代价是恢复时可能撞号，交给 restoreProblem 重新分配。
+ */
+function nextNo (bookId) {
+  const used = new Set(bookProblems(bookId).map(p => p.no))
+  let n = 1
+  while (used.has(n)) n++
+  return n
+}
+
 export async function createProblem (imgRecs, slot, bookId = S.bookId, chapterId = S.chapterId) {
   const bk = findBook(bookId)
   if (!bk) return null
-  bk.seq = (bk.seq || 0) + 1
+
+  const no = nextNo(bk.id)
+  // seq 不再是「下一个号」，改成「历史最大号」—— 云端按它给书籍排序，
+  // 旧数据里也存着这个字段，留着比删掉省事
+  bk.seq = Math.max(bk.seq || 0, no)
   await saveBook(bk)
 
   const p = {
     id: uid(), bookId: bk.id, chapterId: chapterId || null,
-    no: bk.seq, title: '', kind: 'wrong', difficulty: 3, mastery: 0, starred: false,
+    no, title: '', kind: 'wrong', difficulty: 3, mastery: 0, starred: false,
     reasons: [], topics: [], source: '', note: '',
     latex: emptyLatex(), ai: emptyAI(),
     images: (imgRecs || []).map(r => ({ id: r.id, slot: slot || 'q', cap: '' })),
@@ -222,8 +242,15 @@ export async function deleteProblem (id) {
 export async function restoreProblem (id) {
   const p = S.problems.find(x => x.id === id)
   if (!p) return
+
+  // 题号在删除的那一刻就释放了，很可能已经被后来的新题占走。
+  // 必须赶在复活之前判断 —— 复活之后 p 自己也在活题里，一定会「撞上自己」
+  const taken = bookProblems(p.bookId).some(x => x.no === p.no)
+
   p.deletedAt = 0
   p.updatedAt = now()
+  // 撞号就当新题重新拿一个，不去动那道占了号的题
+  if (taken) p.no = nextNo(p.bookId)
   // 原属章节可能已经被删了，那就退回未归类
   if (p.chapterId && !S.chapters.some(c => c.id === p.chapterId && !c.deletedAt)) {
     p.chapterId = null

@@ -39,6 +39,29 @@ export function nav (d) {
   openProblem(arr[j].id)
 }
 
+/**
+ * 展开 / 收起某个槽位（答案、补充）。
+ *
+ * 文字和截图一起开、一起关 —— 按快捷键是想「看答案」这一件事，
+ * 展开后还要再点一次「原始截图」才看得全，等于把一个动作拆成两个。
+ */
+export function toggleSlot (k) {
+  const p = PROB()
+  if (!p) return
+
+  const has = p.images.some(i => i.slot === k) || (p.latex?.[k] || '').trim()
+  if (!has) { toast(`这道题还没有${slotName(k)}`); return }
+
+  if (openSecs.has(k)) {
+    openSecs.delete(k)
+    openShots.delete(k)
+  } else {
+    openSecs.add(k)
+    openShots.add(k)
+  }
+  renderDetail()
+}
+
 /* ---------- 主体 ---------- */
 
 function shotsHTML (p, s, imgs) {
@@ -179,10 +202,35 @@ function noteViewHTML (p) {
     : '<div class="note-view ph" data-editnote>还没有批注。点这里开始写 —— 建议至少记清「为什么错」和「正确的切入点」。</div>'
 }
 
-export function openNote () {
+/**
+ * 批注的键盘入口：折叠着就先展开，已经展开才进编辑。
+ *
+ * 批注默认是收起的，一按键就跳进编辑框会跳过「先看一眼原来写了什么」这一步；
+ * 而且那时候 #noteHost 还不存在，openNote() 会直接抛空指针。
+ */
+export function noteStep () {
   const p = PROB()
   if (!p) return
-  $('#noteHost').innerHTML = `
+
+  const has = !!(p.note || '').trim()
+  const folded = has && S.settings.foldAnswer && !openSecs.has('note')
+  if (folded) {
+    openSecs.add('note')
+    renderDetail()
+    return
+  }
+  // 只读版展开就到头了，没有编辑这一步
+  if (READONLY) return
+  openNote()
+}
+
+export function openNote () {
+  const p = PROB()
+  const host = $('#noteHost')
+  // 批注折叠时没有 #noteHost。走 noteStep 进来不会碰上，
+  // 但这里是导出函数，留个兜底比让调用方记规矩可靠
+  if (!p || !host) return
+  host.innerHTML = `
     <div class="note-h">
       ${NOTE_SNIPS.map((s, i) => `<button class="snip" data-snip="${i}">${s.t}</button>`).join('')}
       <div class="spacer"></div>
@@ -223,6 +271,30 @@ export function insertSnip (i) {
   const cur = (pre + lead + s).length - (s.startsWith('$$') ? 3 : 0)
   ta.focus()
   ta.setSelectionRange(cur, cur)
+}
+
+/**
+ * 删掉一个错因 / 知识点标签。
+ * 左键点那个 ✕ 和右键点整个标签走同一条路 —— ✕ 太小，鼠标得瞄。
+ *
+ * @param kind 'reason' | 'topic'
+ */
+export async function removeTag (kind, value) {
+  const p = PROB()
+  if (!p || READONLY) return
+
+  if (kind === 'reason') {
+    p.reasons = (p.reasons || []).filter(x => x !== value)
+    await saveProblem(p)
+    renderSide()
+    // 错因同时是左栏的筛选项，得跟着重画
+    render('list', 'filters')
+  } else {
+    p.topics = (p.topics || []).filter(x => x !== value)
+    await saveProblem(p)
+    renderSide()
+    render('list')
+  }
 }
 
 /* ---------- 右侧元信息 ---------- */

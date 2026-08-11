@@ -11,6 +11,18 @@
 .modal-b{padding:16px 18px;overflow-y:auto}
 .modal-f{padding:12px 18px;border-top:1px solid var(--rule);display:flex;gap:8px;justify-content:flex-end;background:var(--raised)}
 
+/* ---------- 设置里的快捷键页 ---------- */
+.kh-g{
+  font-size:11.5px;color:var(--ink3);letter-spacing:.06em;font-weight:600;
+  margin:16px 0 7px;padding-bottom:5px;border-bottom:1px solid var(--rule2);
+}
+.kh-g:first-child{margin-top:0}
+.kh{width:100%;border-collapse:collapse}
+.kh td{padding:5px 0;vertical-align:baseline}
+.kh-k{width:150px;white-space:nowrap;padding-right:14px !important}
+.kh-p{color:var(--ink3);font-size:11px;margin:0 3px}
+.kh-t{font-size:13px;color:var(--ink2);line-height:1.7}
+
 /* ---------- 浮层菜单 ---------- */
 .pop{
   position:absolute;background:var(--card);border:1px solid var(--rule);border-radius:10px;

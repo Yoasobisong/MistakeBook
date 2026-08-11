@@ -77,7 +77,3 @@
 }
 .empty .k{font-size:15px;color:var(--ink2);font-weight:600}
 .empty .s{font-size:13px;max-width:380px;line-height:1.8}
-.empty kbd{
-  font-family:var(--mono);font-size:11.5px;background:var(--card);border:1px solid var(--rule);
-  border-bottom-width:2px;border-radius:5px;padding:1px 5px;color:var(--ink2);
-}

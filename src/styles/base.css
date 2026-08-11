@@ -44,6 +44,12 @@ textarea.inp{height:auto;padding:9px 11px;line-height:1.7;resize:vertical}
 label.fld{display:block;font-size:11.5px;color:var(--ink3);letter-spacing:.04em;margin:0 0 5px}
 .sep{height:1px;background:var(--rule);margin:12px 0}
 
+/* 键帽：空状态提示与设置里的快捷键页共用 */
+kbd{
+  font-family:var(--mono);font-size:11.5px;background:var(--card);border:1px solid var(--rule);
+  border-bottom-width:2px;border-radius:5px;padding:1px 5px;color:var(--ink2);white-space:nowrap;
+}
+
 /* 顶栏「只读」徽标（网页版）与云同步按钮 */
 .badge{
   display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;
