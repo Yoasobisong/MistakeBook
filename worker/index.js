@@ -41,6 +41,26 @@ function authed (req, env) {
   return !!env.PUSH_TOKEN && t === env.PUSH_TOKEN
 }
 
+/**
+ * 读接口的密码校验（登录墙，替代 Cloudflare Access —— 免费版开通要绑卡）。
+ * 校验来源：x-view-key 请求头，或 URL 上的 ?key= 参数（图片 <img> 没法带头，只能带参）。
+ * 密码存在 env.VIEW_KEY，用 `wrangler secret put VIEW_KEY` 设置。
+ * 没配 VIEW_KEY 就完全放行（保持旧行为），配了就要求密码一致。
+ */
+function viewAuthed (req, env) {
+  if (!env.VIEW_KEY) return true
+  const head = req.headers.get('x-view-key')
+  if (head && head === env.VIEW_KEY) return true
+  const url = new URL(req.url)
+  const q = url.searchParams.get('key')
+  return !!q && q === env.VIEW_KEY
+}
+
+const needViewAuth = (req, env) => {
+  if (viewAuthed(req, env)) return null
+  return json({ error: 'unauthorized' }, 401)
+}
+
 /* ---------- 读 ---------- */
 
 async function snapshot (env) {
@@ -179,7 +199,10 @@ async function pruneImages (env) {
   const alive = new Set()
   for (const r of rows.results) {
     try {
-      for (const im of JSON.parse(r.images || '[]')) alive.add(im.id)
+      // 题目(q)截图不上云 —— 即使旧数据里还引用着 q 槽图，也不当"活图"保留
+      for (const im of JSON.parse(r.images || '[]')) {
+        if (im.slot !== 'q') alive.add(im.id)
+      }
     } catch (_) {}
   }
 
@@ -208,6 +231,9 @@ export default {
 
     try {
       if (req.method === 'GET') {
+        // 网页只读版的数据接口 —— 登录墙校验（VIEW_KEY）
+        const v = needViewAuth(req, env)
+        if (v) return v
         if (path === '/api/snapshot') return snapshot(env)
         if (path === '/api/stat') return stat(env)
         if (path.startsWith('/api/img/')) return getImage(env, path.slice(9))

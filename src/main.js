@@ -11,7 +11,8 @@ import { S, emptyFilters, openSecs, openShots } from './core/state.js'
 import { BOOK, PROB, chName, findProblem } from './core/selectors.js'
 import { READONLY } from './core/env.js'
 import { openDB } from './storage/db.js'
-import { loadRemote } from './storage/remote.js'
+import { loadRemote, setViewKey } from './storage/remote.js'
+import { bindAuthForm, showAuth } from './ui/auth.js'
 import {
   createProblem, deleteProblem, loadAll, saveMetaSoon, saveProblem
 } from './storage/repo.js'
@@ -72,7 +73,8 @@ function bindClicks () {
 
     // 批量工具条（全选、各项批量操作）
     if (handleSelClick(t)) return
-    if (hit('#btnTheme')) { cycleTheme(); saveMetaSoon(); return }
+    // 网页版主题存 localStorage，桌面版才需要落库
+    if (hit('#btnTheme')) { cycleTheme(); if (!READONLY) saveMetaSoon(); return }
     if (hit('#btnDetPrint')) { printFlow(true); return }
     if (hit('#btnDetDel')) { await removeProblem(S.problemId); return }
     if (hit('#btnNew')) {
@@ -445,23 +447,60 @@ function fatalWeb (err) {
     <span class="mono" style="font-size:11.5px;color:#94A3AC">${String(err?.message || err)}</span></div></div>`
 }
 
+/** 登录通过后：砍掉写入口、亮只读徽章、重新渲染主界面。
+ *  注意：boot 尾部会在数据加载前先 renderAll() 一次（渲染空壳被登录页盖住），
+ *  登录成功必须在这里再渲染一次，否则登录页一消失露出来的是空的干背景。 */
+function afterAuth () {
+  for (const id of ['btnNew', 'btnSel', 'btnAddCh', 'btnImportToc', 'btnDetDel', 'aiSlot']) {
+    const el = document.getElementById(id)
+    el?.remove()
+  }
+  $('#roBadge').classList.remove('hidden')
+  renderAll()
+}
+
 async function boot () {
   document.body.classList.toggle('readonly', READONLY)
 
   if (READONLY) {
     // 网页版：不碰 IndexedDB，全量快照进内存，图片按需从 API 取
+    //
+    // 登录墙：先静默试一次 /api/snapshot —— Worker 没配 VIEW_KEY、
+    // 或 sessionStorage 里已经存着密码时，这一次就直接成功了，
+    // 用户根本不该看见登录页。只有真的吃到 401/403 才把它亮出来。
+    // （早期版本无条件先 showAuth() 再拉数据，导致每个访客都要先闪一下登录页）
+    //
+    // 注意：登录表单成功后不能 return —— 后面还要砍写入口、渲染主界面
+    let authed = false
+    bindAuthForm(async pwd => {
+      setViewKey(pwd)
+      try {
+        await loadRemote()
+        authed = true
+        afterAuth()
+        return true
+      } catch (err) {
+        const msg = String(err?.message || '')
+        if (!/401|403|没有访问权限/.test(msg)) {
+          fatalWeb(err)
+          return false
+        }
+        return false
+      }
+    })
     try {
       await loadRemote()
+      authed = true
     } catch (err) {
-      fatalWeb(err)
-      return
+      const msg = String(err?.message || '')
+      if (!/401|403|没有访问权限/.test(msg)) {
+        fatalWeb(err)
+        return
+      }
+      // 401/403：确实需要密码，这时候才显示登录页，等表单提交后再走
+      showAuth()
     }
-    // 只读版砍掉所有写入口
-    for (const id of ['btnNew', 'btnSel', 'btnAddCh', 'btnImportToc', 'btnDetDel', 'aiSlot']) {
-      const el = document.getElementById(id)
-      el?.remove()
-    }
-    $('#roBadge').classList.remove('hidden')
+    if (authed) afterAuth()
   } else {
     try {
       await openDB()

@@ -9,8 +9,12 @@
 #   D1 数据库：Workers & Pages → D1 → 创建「cuotiben」→ 复制 Database ID
 #   KV 命名空间：存储和数据库 → KV → 创建「cuotiben-images」→ 复制 Namespace ID
 #
-# PUSH_TOKEN 不要写在这里 —— 用 `wrangler secret put PUSH_TOKEN` 设置，
+# PUSH_TOKEN / VIEW_KEY 不要写在这里 —— 用 `wrangler secret put` 设置，
 # 免得跟着仓库一起进 GitHub。
+#
+#   wrangler secret put PUSH_TOKEN   写接口令牌（桌面版推送用，必设）
+#   wrangler secret put VIEW_KEY    网页版登录墙密码（可选；设了之后读接口要校验，
+#                                   网页版打开时会让访问者输这个密码才能看题）
 
 name = "cuotiben-api"
 main = "index.js"

@@ -1,0 +1,287 @@
+/* ============================================================
+   登录墙 —— 网页只读版受密码保护时显示
+   Hermes 官网风格：纯蓝底 + Sigurd 巨字 + 球体视频 + 玻璃卡片
+   ============================================================ */
+
+/* Sigurd Variable 字体（官网同款 woff2，public/ 下随构建打包） */
+@font-face {
+  font-family: 'Sigurd';
+  src: url('/sigurd-variable.woff2') format('woff2');
+  font-weight: 300 800;
+  font-display: swap;
+}
+
+#authScreen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #0000F2;
+  overflow: hidden;
+}
+#authScreen.hidden { display: none; }
+
+/* 噪点 + 暗角（Hermes 官网同款质感） */
+#authScreen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+}
+#authScreen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 60, 0.35) 100%);
+}
+
+/* 登录卡片：绝对定位，位于中间偏左（整体右移后视觉居中） */
+.auth-panel {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-88%, -50%);
+  z-index: 3;
+  width: 420px;
+  max-width: 100%;
+}
+
+/* 背景光晕 */
+.auth-glow {
+  position: absolute;
+  top: -80px;
+  right: -60px;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(168, 85, 247, .35), transparent 70%);
+  filter: blur(20px);
+  animation: authGlow 7s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+@keyframes authGlow {
+  from { transform: translate(0, 0) scale(1) }
+  to   { transform: translate(-20px, 20px) scale(1.12) }
+}
+
+/* 玻璃拟态卡片（精致版：渐变描边 + 内高光） */
+.auth-card {
+  position: relative;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.04)),
+    rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(20px) saturate(1.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+  border-radius: 20px;
+  padding: 46px 40px 38px;
+  box-shadow:
+    0 24px 64px rgba(0, 0, 80, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  animation: authIn .45s cubic-bezier(.2, .8, .25, 1);
+  box-sizing: border-box;
+}
+/* 渐变描边：用 mask 实现双色边框 */
+.auth-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  padding: 1px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.06) 40%, rgba(125, 125, 255, 0.25));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+@keyframes authIn {
+  from { opacity: 0; transform: translateY(16px) scale(.97) }
+  to   { opacity: 1; transform: none }
+}
+
+/* Logo：纯蓝底白字（Hermes 风格） */
+.auth-logo {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  background: #0000F2;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 28px rgba(0, 0, 242, 0.45);
+  animation: authFloat 4s ease-in-out infinite;
+}
+@keyframes authFloat {
+  0%, 100% { transform: translateY(0) }
+  50%      { transform: translateY(-6px) }
+}
+
+.auth-title {
+  margin: 0 0 6px;
+  text-align: center;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: #FFFFFF;
+}
+.auth-sub {
+  margin: 0 0 30px;
+  text-align: center;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.auth-field {
+  margin-bottom: 14px;
+}
+.auth-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.75);
+}
+.auth-input {
+  width: 100%;
+  height: 46px;
+  padding: 0 15px;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  color: #FFFFFF;
+  font-size: 14.5px;
+  backdrop-filter: blur(6px);
+  transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.auth-input::placeholder { color: rgba(255, 255, 255, 0.35) }
+.auth-input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(125, 125, 255, 0.6);
+  box-shadow: 0 0 0 3px rgba(125, 125, 255, 0.18);
+}
+
+.auth-err {
+  display: none;
+  margin: 4px 0 12px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  color: #FCA5A5;
+  background: rgba(239, 68, 68, 0.16);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 10px;
+}
+.auth-err.on {
+  display: block;
+  animation: authShake .38s ease;
+}
+@keyframes authShake {
+  0%, 100% { transform: translateX(0) }
+  25% { transform: translateX(-6px) }
+  55% { transform: translateX(5px) }
+  80% { transform: translateX(-3px) }
+}
+
+/* 主按钮：白底蓝字直角（Hermes 官网同款） */
+.auth-btn {
+  width: 100%;
+  height: 46px;
+  margin-top: 8px;
+  border: none;
+  border-radius: 12px;
+  background: #F5F5F5;
+  color: #0000F2;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: .3px;
+  cursor: pointer;
+  transition: transform .15s, box-shadow .15s, background .15s;
+}
+.auth-btn:hover {
+  background: #FFFFFF;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(0, 0, 242, 0.35);
+}
+.auth-btn:active { transform: translateY(1px) }
+
+.auth-foot {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* 右栏：超大英文文字 + 视频撑满窗口压在上面 */
+.auth-stage {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  width: 62%;
+  max-width: 1000px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.auth-stage-copy {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  margin-left: -8vw;
+  z-index: 0;
+  pointer-events: none;
+}
+.auth-stage-big {
+  font-family: 'Sigurd', 'Times New Roman', Times, serif;
+  font-size: clamp(160px, 18vw, 300px);
+  font-weight: 300;
+  letter-spacing: 0.04em;
+  line-height: 1.02;
+  color: #2F33E6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  white-space: nowrap;
+}
+.auth-stage-big:last-child {
+  color: transparent;
+  background: linear-gradient(135deg, #3A3EE8, #2F33E6);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.auth-orb {
+  position: relative;
+  z-index: 1;
+  height: 100vh;
+  width: auto;
+  max-width: none;
+  opacity: 0.95;
+  filter: saturate(1.1);
+}
+
+/* 窄屏：隐藏视频区，登录框居中 */
+@media (max-width: 900px) {
+  .auth-stage { display: none }
+  .auth-orb { display: none }
+  .auth-panel {
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    max-width: 420px;
+  }
+}
+
+/* 尊重系统减少动效设置 */
+@media (prefers-reduced-motion: reduce) {
+  .auth-logo, .auth-glow { animation: none }
+  .auth-card { animation: none }
+}

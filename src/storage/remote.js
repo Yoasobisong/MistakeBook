@@ -14,8 +14,30 @@ const imageMeta = new Map()
 
 export const remoteImageMeta = id => imageMeta.get(id)
 
+/* ---------- 登录墙 ----------
+ * Worker 配了 VIEW_KEY 后，读接口要求 x-view-key 头或 ?key= 参数。
+ * 网页版打开时让用户输一次密码，存 sessionStorage，之后所有请求自动带上。
+ */
+const KEY = 'mb.viewKey'
+
+export const getViewKey = () => {
+  try { return sessionStorage.getItem(KEY) || '' } catch (_) { return '' }
+}
+
+export const setViewKey = k => {
+  try { sessionStorage.setItem(KEY, k) } catch (_) {}
+}
+
+/** fetch 封装：自动带 x-view-key 头 */
+async function apiFetch (path) {
+  const opts = { credentials: 'include' }
+  const key = getViewKey()
+  if (key) opts.headers = { 'x-view-key': key }
+  return fetch(apiURL(path), opts)
+}
+
 export async function loadRemote () {
-  const res = await fetch(apiURL('/api/snapshot'), { credentials: 'include' })
+  const res = await apiFetch('/api/snapshot')
   if (!res.ok) {
     throw new Error(res.status === 401 || res.status === 403
       ? '没有访问权限，请先登录'
@@ -42,12 +64,17 @@ export async function loadRemote () {
   return d
 }
 
-/** 云端图片直接用 URL，不下载成 blob —— 浏览器自己会缓存，还能走 CDN */
-export const remoteImgURL = id => apiURL('/api/img/' + id)
+/** 云端图片直接用 URL，不下载成 blob —— 浏览器自己会缓存，还能走 CDN。
+ *  图片 <img> 没法带头，只能把 key 拼进 URL（Worker 也认 ?key= 参数） */
+export const remoteImgURL = id => {
+  const u = apiURL('/api/img/' + id)
+  const key = getViewKey()
+  return key ? u + '?key=' + encodeURIComponent(key) : u
+}
 
 export async function remoteStat () {
   try {
-    const r = await fetch(apiURL('/api/stat'), { credentials: 'include' })
+    const r = await apiFetch('/api/stat')
     return r.ok ? r.json() : null
   } catch (_) {
     return null

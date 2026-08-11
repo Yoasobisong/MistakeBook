@@ -106,10 +106,20 @@ export async function pushToCloud (silent) {
     emit('cloud:state', { busy: true, text: '推送元数据…' })
     const r = await postJSON('/api/push', { ...delta, images: imgMeta })
 
-    // 云端可能还留着本地已删题目的图，顺手清掉
-    if (delta.problems.some(p => p.deletedAt)) {
-      await postJSON('/api/prune', {}).catch(() => {})
+    // 每次推送后都清理云端孤儿图：
+    //  1) 本地已删题目的图
+    //  2) 历史上传过的题目(q)截图 —— 现在题目图不上云，云端 problems.images 里
+    //     如果还残留 q 槽引用，prune 会把它们当"活图"保留，所以要先把引用剥掉
+    //     再让 prune 判断（worker 的 prune 只看云端 problems 表里的引用）
+    const cleaned = []
+    for (const p of S.problems) {
+      if (p.deletedAt) continue
+      cleaned.push({ ...p, images: (p.images || []).filter(im => im.slot !== 'q') })
     }
+    if (cleaned.length) {
+      await postJSON('/api/push', { problems: cleaned }).catch(() => {})
+    }
+    await postJSON('/api/prune', {}).catch(() => {})
 
     c.lastPush = Date.now()
     await saveMeta()

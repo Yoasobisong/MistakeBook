@@ -1,42 +1,85 @@
-<svg width="520" height="380" viewBox="0 0 520 380" xmlns="http://www.w3.org/2000/svg">
-  <!-- 手柄主体外壳 -->
-  <rect x="95" y="145" width="155" height="95" rx="35" ry="35" fill="#2c2c2c" stroke="#1a1a1a" stroke-width="18"/>
-  <rect x="255" y="145" width="155" height="95" rx="35" ry="35" fill="#2c2c2c" stroke="#1a1a1a" stroke-width="18"/>
-  <rect x="195" y="155" width="130" height="75" rx="25" ry="25" fill="#2c2c2c" stroke="#1a1a1a" stroke-width="12"/>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="520" height="320" viewBox="0 0 520 320" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#00ff88" flood-opacity="0.6"/>
+    </filter>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="3" dy="5" stdDeviation="2.5" flood-color="#000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
 
-  <!-- 肩键 -->
-  <rect x="115" y="115" width="48" height="18" rx="6" ry="6" fill="#1f1f1f" stroke="#0f0f0f" stroke-width="6"/>
-  <rect x="357" y="115" width="48" height="18" rx="6" ry="6" fill="#1f1f1f" stroke="#0f0f0f" stroke-width="6"/>
+  <!-- 手柄外壳 - 更圆润现代感 -->
+  <path d="M 55 135 
+           Q 45 115 55 92 
+           L 465 92 
+           Q 475 115 465 135 
+           L 55 135 Z" 
+        fill="#1a1a1a" 
+        stroke="#2f2f2f" 
+        stroke-width="22" 
+        filter="url(#shadow)"/>
 
-  <!-- 触发键 -->
-  <rect x="125" y="85" width="38" height="22" rx="4" ry="4" fill="#1f1f1f" stroke="#0f0f0f" stroke-width="5"/>
-  <rect x="357" y="85" width="38" height="22" rx="4" ry="4" fill="#1f1f1f" stroke="#0f0f0f" stroke-width="5"/>
+  <!-- 机身金属质感高光 -->
+  <path d="M 55 135 
+           Q 45 115 55 92 
+           L 465 92 
+           Q 475 115 465 135 
+           L 55 135 Z" 
+        fill="none" 
+        stroke="#3a3a3a" 
+        stroke-width="8" 
+        opacity="0.25"/>
 
-  <!-- 方向键 -->
-  <rect x="125" y="195" width="78" height="78" rx="8" ry="8" fill="#1f1f1f" stroke="#0f0f0f" stroke-width="6"/>
-  <rect x="148" y="195" width="32" height="18" rx="3" ry="3" fill="#0f0f0f" stroke="#1a1a1a" stroke-width="4"/>
-  <rect x="148" y="265" width="32" height="18" rx="3" ry="3" fill="#0f0f0f" stroke="#1a1a1a" stroke-width="4"/>
-  <rect x="125" y="213" width="18" height="32" rx="3" ry="3" fill="#0f0f0f" stroke="#1a1a1a" stroke-width="4"/>
-  <rect x="177" y="213" width="18" height="32" rx="3" ry="3" fill="#0f0f0f" stroke="#1a1a1a" stroke-width="4"/>
+  <!-- 左摇杆外壳 -->
+  <circle cx="125" cy="148" r="42" fill="#181818" stroke="#3a3a3a" stroke-width="9"/>
 
-  <!-- 左摇杆 -->
-  <circle cx="195" cy="265" r="22" fill="#1a1a1a" stroke="#0f0f0f" stroke-width="6"/>
-  <circle cx="195" cy="265" r="14" fill="#3a3a3a" stroke="#1a1a1a" stroke-width="4"/>
+  <!-- 左摇杆杆 -->
+  <circle cx="125" cy="148" r="23" fill="#2c2c2c" filter="url(#glow)"/>
 
-  <!-- 右摇杆 -->
-  <circle cx="325" cy="265" r="22" fill="#1a1a1a" stroke="#0f0f0f" stroke-width="6"/>
-  <circle cx="325" cy="265" r="14" fill="#3a3a3a" stroke="#1a1a1a" stroke-width="4"/>
+  <!-- 右摇杆外壳 -->
+  <circle cx="395" cy="148" r="42" fill="#181818" stroke="#3a3a3a" stroke-width="9"/>
 
-  <!-- 菜单按钮 -->
-  <circle cx="125" cy="155" r="11" fill="#1f1f1f" stroke="#0f0f0f" stroke-width="5"/>
-  <circle cx="395" cy="155" r="11" fill="#1f1f1f" stroke="#0f0f0f" stroke-width="5"/>
+  <!-- 右摇杆杆 -->
+  <circle cx="395" cy="148" r="23" fill="#2c2c2c" filter="url(#glow)"/>
 
-  <!-- 主按钮 -->
-  <circle cx="260" cy="260" r="13" fill="#1f1f1f" stroke="#0f0f0f" stroke-width="6"/>
+  <!-- A 按钮（发光绿色） -->
+  <circle cx="320" cy="228" r="28" fill="#00dd55" stroke="#ffffff" stroke-width="6" filter="url(#glow)"/>
 
-  <!-- ABXY 按键 -->
-  <circle cx="325" cy="195" r="14" fill="#00aaff" stroke="#0088cc" stroke-width="5"/>
-  <circle cx="365" cy="195" r="14" fill="#ff2d55" stroke="#cc0022" stroke-width="5"/>
-  <circle cx="325" cy="235" r="14" fill="#00ff88" stroke="#00cc44" stroke-width="5"/>
-  <circle cx="365" cy="235" r="14" fill="#ffdd00" stroke="#ccaa00" stroke-width="5"/>
+  <!-- B 按钮（发光红色） -->
+  <circle cx="268" cy="228" r="28" fill="#ff2266" stroke="#ffffff" stroke-width="6" filter="url(#glow)"/>
+
+  <!-- X 按钮（发光红色） -->
+  <circle cx="216" cy="178" r="28" fill="#ff2266" stroke="#ffffff" stroke-width="6" filter="url(#glow)"/>
+
+  <!-- Y 按钮（发光绿色） -->
+  <circle cx="164" cy="178" r="28" fill="#00dd55" stroke="#ffffff" stroke-width="6" filter="url(#glow)"/>
+
+  <!-- D-pad - 更精致 -->
+  <g transform="translate(78, 78)">
+    <polygon points="0,25 25,0 50,25 25,50" fill="#333333" stroke="#cccccc" stroke-width="7"/>
+    <polygon points="25,25 25,15 15,25" fill="#222222" stroke="#cccccc" stroke-width="3"/>
+  </g>
+
+  <!-- 左肩键 LB -->
+  <rect x="62" y="42" width="105" height="32" rx="14" fill="#444444" stroke="#999" stroke-width="5" rx="8"/>
+
+  <!-- 右肩键 RB -->
+  <rect x="353" y="42" width="105" height="32" rx="14" fill="#444444" stroke="#999" stroke-width="5" rx="8"/>
+
+  <!-- 左扳机 -->
+  <rect x="98" y="72" width="32" height="16" rx="7" fill="#777777" stroke="#999" stroke-width="4"/>
+
+  <!-- 右扳机 -->
+  <rect x="390" y="72" width="32" height="16" rx="7" fill="#777777" stroke="#999" stroke-width="4"/>
+
+  <!-- 标题 -->
+  <text x="260" y="32" font-family="Microsoft YaHei, Arial Black, sans-serif" font-size="28" font-weight="700" fill="#ffffff" text-anchor="middle" letter-spacing="3" filter="url(#glow)">
+    GAMEPAD
+  </text>
+
+  <!-- 副标题 -->
+  <text x="260" y="295" font-family="Arial" font-size="13" fill="#666666" text-anchor="middle">
+    高级 Xbox 风格 • 精美设计
+  </text>
 </svg>

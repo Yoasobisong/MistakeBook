@@ -38,3 +38,8 @@ worker/.dev.vars
 # 其他
 task.md
 启动错题本.bat
+build-log.txt
+
+# 设计参考存档（登录页照着 Hermes 官网做的，存档留本地即可）
+Nous Portal.html
+Nous Portal_files/
