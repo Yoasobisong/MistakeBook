@@ -38,7 +38,7 @@ export function cardHTML (p) {
   const preview = txt
     ? `<div class="c-tex">${mdRender(previewMd(txt), { repairMath: true })}</div>`
     : q
-      ? `<img class="c-thumb" data-img="${q.id}" data-kind="thumb" alt="">`
+      ? `<img class="c-thumb" data-img="${q.id}" data-kind="thumb" alt="" loading="lazy" decoding="async">`
       : '<div class="c-empty">还没有截图</div>'
 
   const on = selMode() && sel.has(p.id)

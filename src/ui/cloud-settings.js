@@ -7,8 +7,9 @@
 import { $, esc } from '../core/dom.js'
 import { S } from '../core/state.js'
 import { fmtDT } from '../core/fmt.js'
-import { testCloud, pushToCloud, cloudReady } from './cloud.js'
+import { testCloud, pushToCloud, pushAll, cloudReady } from './cloud.js'
 import { saveMeta } from '../storage/repo.js'
+import { modal } from './modal.js'
 import { toast } from './toast.js'
 
 export function cloudPaneHTML () {
@@ -26,11 +27,13 @@ export function cloudPaneHTML () {
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
       <button class="btn" data-clact="test">测试连接</button>
       <button class="btn primary" data-clact="push">立即推送</button>
+      <button class="btn" data-clact="full" title="把所有记录重推一遍，用来修复云端和本地对不上的情况">全量重推</button>
     </div>
     <div style="font-size:12px;color:var(--ink3);margin-top:10px;line-height:1.8">
       ${ready ? '配置已就绪' : '还没填地址 / 令牌'}
       ${c.lastPush ? ` · 上次推送：${fmtDT(c.lastPush)}` : ''}<br>
-      单向同步：桌面版推、网页端只读，没有冲突。图片只传云端缺的那几张，断了下次自动补。</div>
+      单向同步：桌面版推、网页端只读，没有冲突。图片只传云端缺的那几张，断了下次自动补。<br>
+      发现网页版和桌面版对不上（比如删掉的题还在），点「全量重推」对齐一次。</div>
   </div>`
 }
 
@@ -42,7 +45,7 @@ export function readCloud () {
   c.autoPush = $('#clAuto').checked
 }
 
-/** 分页内的按钮点击（测试连接 / 立即推送）。返回 true 表示已处理 */
+/** 分页内的按钮点击（测试连接 / 立即推送 / 全量重推）。返回 true 表示已处理 */
 export async function handleCloudClick (t) {
   const act = t.dataset.clact
   if (!act) return false
@@ -52,6 +55,19 @@ export async function handleCloudClick (t) {
     const r = await testCloud()
     if (r.ok) toast('连接正常', r.text)
     else toast('连接失败', (r.error || '').slice(0, 50))
+  } else if (act === 'full') {
+    const ok = await modal({
+      title: '全量重推',
+      okText: '开始',
+      body: `<div style="font-size:13.5px;line-height:1.8;color:var(--ink2)">
+        把本地 <b>${S.problems.filter(p => !p.deletedAt).length}</b> 道题的全部记录重新推一遍，
+        用来修复云端和本地对不上的情况（比如删掉的题在网页版上还在）。<br><br>
+        <span style="color:var(--ink3)">截图不会重传 —— 云端已经有的照旧跳过。
+        题目多的话会慢一些。</span></div>`
+    })
+    if (!ok) return true
+    const r = await pushAll()
+    if (!r.ok) toast('全量重推失败', (r.error || '').slice(0, 50))
   } else {
     const r = await pushToCloud()
     if (!r.ok) toast('推送失败', (r.error || '').slice(0, 50))

@@ -160,6 +160,25 @@ export async function pushToCloud (silent) {
   }
 }
 
+/**
+ * 强制全量推送：把水位线归零后再推一次。
+ *
+ * changedSince(0) 会捞出所有 updatedAt > 0 的记录，**包括墓碑** ——
+ * 所以它能修复「本地删了、云端还留着」这类历史不一致
+ * （早期版本的水位线竞态会漏推墓碑，漏掉之后那条记录再也不会被改动，
+ * updatedAt 永远追不上水位线，不主动全量推就永远对不齐）。
+ *
+ * 图片不受影响：haveimg 每次都是按云端实际有什么来算增量，
+ * 已经传上去的不会重传。
+ */
+export async function pushAll (silent) {
+  const c = cfg()
+  if (!cloudReady()) return { ok: false, error: '还没配置云端地址和令牌' }
+  c.lastPush = 0
+  await saveMeta()
+  return pushToCloud(silent)
+}
+
 export async function testCloud (override) {
   const c = { ...cfg(), ...(override || {}) }
   if (!c.apiBase) return { ok: false, error: '还没填 API 地址' }

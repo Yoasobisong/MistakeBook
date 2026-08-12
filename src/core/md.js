@@ -16,8 +16,14 @@ import katex from 'katex'
 import 'katex/dist/katex.min.css'
 import { esc } from './dom.js'
 
-/** 占位符用私有区字符，正文里不可能出现。写成转义形式，避免编辑器把它吃掉 */
-const PH = ''
+/**
+ * 占位符：私有区字符 U+E000，正文里不可能出现。
+ *
+ * 必须用 String.fromCharCode 构造，不能把字符直接敲进字面量 ——
+ * 它在编辑器里完全不可见，一旦被某个工具顺手吃掉，
+ * build() 里的占位符替换会静默失效，公式全部消失且毫无线索。
+ */
+const PH = String.fromCharCode(0xE000)
 
 /**
  * 四种定界符都要认。
@@ -85,7 +91,6 @@ function renderMath (raw) {
  * 按码点判断，而不是把字符直接写进正则字符类：
  * 这一段要覆盖的 U+3000 是全角空格，**看上去就是个普通空白**，
  * 写进源码迟早被某个编辑器或格式化工具吃掉，届时正则会静默变义。
- * print.js 里那个藏了很久的 NUL 就是前车之鉴。
  */
 function isCJK (ch) {
   const c = ch.charCodeAt(0)
@@ -154,9 +159,8 @@ export function mdRender (src, opts) {
 
   const fix = !!opts?.repairMath
   // 同一段文本补与不补结果不同，缓存键必须带上这个开关。
-  // ⚠ 下面这行的前缀是个不可见字符，功能正确但源码里看不出来 ——
-  //   清理办法见 PH 那条注释，改成 String.fromCharCode 形式即可
-  const key = fix ? '' + src : src
+  // 前缀用普通数字字符，不用不可见字符 —— 那种东西迟早被工具吃掉
+  const key = (fix ? '1' : '0') + src
 
   const hit = cache.get(key)
   if (hit !== undefined) return hit

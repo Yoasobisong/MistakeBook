@@ -31,6 +31,7 @@
   --accent:#0E6A78;
   --accent-h:#0B5866;
   --accent-weak:#E4F0F1;
+  --accent-line:#BBD9DC;
   --on-accent:#FFFFFF;   /* 铺在实心强调色上的文字 */
   --red:#BE3A32;
   --red-weak:#FBECEA;
@@ -86,6 +87,7 @@
   --accent:#5CBACB;
   --accent-h:#7ACEDC;
   --accent-weak:#12333A;
+  --accent-line:#24505A;
   --on-accent:#0B1417;   /* 提亮后的青墨很浅，上面要压深色字 */
   --red:#EE8078;
   --red-weak:#37211F;

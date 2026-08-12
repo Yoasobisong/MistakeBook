@@ -161,8 +161,8 @@ export function renderDetail () {
         </div>
       </div>
       ${READONLY
-        ? (p.starred ? '<span class="badge" style="background:#FCF7E8;color:#B8860B;border-color:#E8DBB4">★ 已标记</span>' : '')
-        : `<button class="btn" id="pStar" style="${p.starred ? 'color:#B8860B;border-color:#E8DBB4;background:#FCF7E8' : ''}">${p.starred ? '★ 已标记' : '☆ 标记'}</button>`}
+        ? (p.starred ? '<span class="badge" style="background:var(--amber-weak);color:var(--amber);border-color:var(--amber-line)">★ 已标记</span>' : '')
+        : `<button class="btn" id="pStar" style="${p.starred ? 'color:var(--amber);border-color:var(--amber-line);background:var(--amber-weak)' : ''}">${p.starred ? '★ 已标记' : '☆ 标记'}</button>`}
     </div>
     ${SLOTS.map(s => slotHTML(p, s)).join('')}
     ${noteSectionHTML(p)}
@@ -338,8 +338,8 @@ export function renderSide () {
     <div class="mt"><div class="mt-l">掌握程度</div>
       <div class="msel">${MASTERY.map(m => `<button data-v="${m.v}" data-mast="${m.v}" class="${(p.mastery | 0) === m.v ? 'on' : ''}">${m.t}</button>`).join('')}</div></div>
     <div class="mt"><div class="mt-l">类型</div>
-      <div class="msel"><button data-kind="wrong" class="${p.kind !== 'good' ? 'on' : ''}" data-v="0" style="${p.kind !== 'good' ? 'background:var(--red-weak);border-color:#E8C6C2;color:var(--red);font-weight:600' : ''}">错题</button>
-      <button data-kind="good" class="${p.kind === 'good' ? 'on' : ''}" data-v="2" style="${p.kind === 'good' ? 'background:var(--accent-weak);border-color:#BBD9DC;color:var(--accent);font-weight:600' : ''}">好题</button></div></div>
+      <div class="msel"><button data-kind="wrong" class="${p.kind !== 'good' ? 'on' : ''}" data-v="0" style="${p.kind !== 'good' ? 'background:var(--red-weak);border-color:var(--red-line);color:var(--red);font-weight:600' : ''}">错题</button>
+      <button data-kind="good" class="${p.kind === 'good' ? 'on' : ''}" data-v="2" style="${p.kind === 'good' ? 'background:var(--accent-weak);border-color:var(--accent-line);color:var(--accent);font-weight:600' : ''}">好题</button></div></div>
     <div class="sep"></div>
     <div class="mt"><div class="mt-l">错因</div>
       <div class="tagbox">${(p.reasons || []).map(r => `<span class="t">${esc(r)}<button data-rmr="${esc(r)}">✕</button></span>`).join('')}

@@ -91,7 +91,9 @@ export async function printFlow (single) {
   let h = `<div class="pr-head"><h1>${esc(b ? b.name : '错题本')}${single ? ' · 第 ' + pad(p.no) + ' 题' : ''}</h1>
     <div class="m">${list.length} 题 · 导出于 ${today()}${opt.ans ? '' : ' · 练习卷（未含解析）'}</div></div>`
 
-  let curCh = ''
+  // 哨兵值必须是 ck 取不到的东西：ck 恒为字符串（chapterId || ''），
+  // 用 '' 的话「未归类」排在首位时会被判成「和上一组相同」，标题就不输出了
+  let curCh = null
   for (const x of list) {
     const ck = x.chapterId || ''
     if (!single && ck !== curCh) {

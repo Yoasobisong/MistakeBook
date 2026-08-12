@@ -184,21 +184,34 @@ export async function importImage (blob) {
 
 /* ---------- 取用：Object URL 缓存 ---------- */
 
+/**
+ * 键是 `id:kind`，值是 **Promise<string>** 而不是字符串。
+ *
+ * 存 Promise 是因为 hydrate 并发取图：同一张图被同时请求两次时，
+ * 存结果的话两次都会 miss、各自 createObjectURL，
+ * 后写入的覆盖先写入的，被覆盖那个再也没人 revoke，blob 就泄漏了。
+ */
 const urlCache = new Map()
 const polCache = new Map()
 
-export async function imgURL (id, kind) {
-  // 网页只读版：图片在 R2，直接给 API URL
-  if (READONLY) return remoteImgURL(id)
+export function imgURL (id, kind) {
+  // 网页只读版：图片在云端，直接给 API URL
+  if (READONLY) return Promise.resolve(remoteImgURL(id))
+
   const key = id + ':' + kind
-  if (urlCache.has(key)) return urlCache.get(key)
-  const rec = await dbGet('images', id)
-  if (!rec) return ''
-  polCache.set(id, polarityOfRec(rec))
-  const blob = kind === 'thumb' ? (rec.thumb || rec.full) : (rec.full || rec.thumb)
-  const u = URL.createObjectURL(blob)
-  urlCache.set(key, u)
-  return u
+  const hit = urlCache.get(key)
+  if (hit) return hit
+
+  const p = (async () => {
+    const rec = await dbGet('images', id)
+    if (!rec) return ''
+    polCache.set(id, polarityOfRec(rec))
+    const blob = kind === 'thumb' ? (rec.thumb || rec.full) : (rec.full || rec.thumb)
+    return URL.createObjectURL(blob)
+  })()
+
+  urlCache.set(key, p)
+  return p
 }
 
 export const POLARITIES = ['light', 'dark', 'color']
@@ -231,26 +244,35 @@ export async function setPolarity (id, polarity) {
 export function forgetImage (id) {
   for (const kind of ['full', 'thumb']) {
     const key = id + ':' + kind
-    const u = urlCache.get(key)
-    if (u) { URL.revokeObjectURL(u); urlCache.delete(key) }
+    const p = urlCache.get(key)
+    if (!p) continue
+    urlCache.delete(key)
+    // 缓存里是 Promise，可能还没解析完就被删了，等它落地再 revoke
+    Promise.resolve(p).then(u => { if (u) URL.revokeObjectURL(u) }).catch(() => {})
   }
   polCache.delete(id)
 }
 
 export const forgetImages = ids => ids.forEach(forgetImage)
 
-/** 把 <img data-img="..."> 填上真实 src */
+/**
+ * 把 <img data-img="..."> 填上真实 src。
+ *
+ * 并发取图：以前是 for 循环里逐张 await，每张都要等上一张的 IndexedDB
+ * 事务走完 —— 200 张卡片就是 200 次串行往返，列表打开时明显发白。
+ * 这些读之间没有任何依赖，全部一起发出去即可。
+ */
 export async function hydrate (root) {
   const els = Array.from((root || document).querySelectorAll('img[data-img]'))
-  for (const el of els) {
-    if (el.dataset.done) continue
+  await Promise.all(els.map(async el => {
+    if (el.dataset.done) return
     el.dataset.done = '1'
     const u = await imgURL(el.dataset.img, el.dataset.kind || 'thumb')
-    if (!u) { el.remove(); continue }
+    if (!u) { el.remove(); return }
     el.src = u
     // 按底色极性决定在哪个主题下反相，具体规则在 tokens.css 里
     el.classList.add('pol-' + polarityOf(el.dataset.img))
-  }
+  }))
 }
 
 /** 从原图重建缩略图。增量备份只存原图，缩略图恢复时现算，省一半同步流量 */
