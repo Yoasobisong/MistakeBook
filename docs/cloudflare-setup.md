@@ -181,6 +181,23 @@ wrangler d1 execute cuotiben --remote --command "SELECT name FROM sqlite_master 
 > 应该列出 `books`、`chapters`、`problems`、`images`、`syncmeta` 五张表。
 > 如果报 `Could not find database "cuotiben"`,回到第 6 步检查 `database_id` 是否填对。
 
+### 已经建过库的:补 books.order 列
+
+`schema.sql` 里的 `CREATE TABLE IF NOT EXISTS` 对**已存在**的表不会做任何改动,
+所以老库不会自动长出新列。书籍排序要用到 `books.order`,缺了它网页版的
+书籍顺序会和桌面版对不上。在 `worker/` 目录里执行:
+
+```bash
+npx wrangler d1 execute cuotiben --remote --file migrations/001-books-order.sql
+```
+
+> 走 `--file` 而不是 `--command`:`order` 是 SQL 关键字,必须用双引号包起来,
+> 而双引号在 PowerShell 和 bash 里的转义规则不一样,写成命令行参数很容易翻车。
+> 放进 .sql 文件就没这个问题,顺带留下一份可复现的迁移记录。
+
+> 报 `duplicate column name: order` 说明已经加过了,忽略即可。
+> 加完到桌面版点一次「设置 → 云同步 → 全量重推」,把各书的 order 推上去。
+
 ---
 
 ## 第 8 步:设置推送令牌 PUSH_TOKEN

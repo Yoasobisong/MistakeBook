@@ -16,10 +16,10 @@
  *   POST /api/haveimg    查询哪些图已在云端，用来算增量
  */
 
-const json = (data, status = 200) =>
+const json = (data, status = 200, extra) =>
   new Response(JSON.stringify(data), {
     status,
-    headers: { 'content-type': 'application/json; charset=utf-8' }
+    headers: { 'content-type': 'application/json; charset=utf-8', ...(extra || {}) }
   })
 
 const JSON_FIELDS = ['reasons', 'topics', 'latex', 'ai', 'images']
@@ -47,17 +47,53 @@ function authed (req, env) {
 
 /**
  * 读接口的密码校验（登录墙，替代 Cloudflare Access —— 免费版开通要绑卡）。
- * 校验来源：x-view-key 请求头，或 URL 上的 ?key= 参数（图片 <img> 没法带头，只能带参）。
+ *
+ * 三个来源，按可靠性排序：
+ *   1. x-view-key 请求头 —— fetch 调用走这条
+ *   2. mbview cookie    —— <img> 没法带自定义头，靠它；由 snapshot 成功时种下
+ *   3. ?key= 查询参数    —— **已废弃**，只为兼容还没刷新的旧客户端
+ *
+ * 第 3 条正是要摆脱的东西：密码出现在 URL 里，会被记进 Cloudflare 访问日志、
+ * 浏览器历史和 referrer 头。新客户端不再生成它，但服务端留着不碍事。
+ *
  * 密码存在 env.VIEW_KEY，用 `wrangler secret put VIEW_KEY` 设置。
  * 没配 VIEW_KEY 就完全放行（保持旧行为），配了就要求密码一致。
  */
+const COOKIE = 'mbview'
+
+function cookieValue (req, name) {
+  for (const part of (req.headers.get('cookie') || '').split(';')) {
+    const i = part.indexOf('=')
+    if (i > 0 && part.slice(0, i).trim() === name) {
+      return decodeURIComponent(part.slice(i + 1).trim())
+    }
+  }
+  return ''
+}
+
 function viewAuthed (req, env) {
   if (!env.VIEW_KEY) return true
   const head = req.headers.get('x-view-key')
   if (head && head === env.VIEW_KEY) return true
-  const url = new URL(req.url)
-  const q = url.searchParams.get('key')
+  if (cookieValue(req, COOKIE) === env.VIEW_KEY) return true
+  const q = new URL(req.url).searchParams.get('key')
   return !!q && q === env.VIEW_KEY
+}
+
+/**
+ * 校验通过后种下 cookie，之后图片请求由浏览器自动带上。
+ *
+ * SameSite=None 是为了兼容前端与 Worker 分域部署 —— 那种情况下图片
+ * 属于跨站请求，Lax 的 cookie 不会被带上。读接口全是幂等 GET、
+ * 写接口另有 PUSH_TOKEN 把关，所以不存在 CSRF 面。
+ * HttpOnly 让页面脚本读不到它，XSS 也偷不走。
+ */
+function withKeyCookie (res, env) {
+  if (!env.VIEW_KEY) return res
+  const h = new Headers(res.headers)
+  h.append('set-cookie',
+    `${COOKIE}=${encodeURIComponent(env.VIEW_KEY)}; Path=/; Max-Age=2592000; HttpOnly; Secure; SameSite=None`)
+  return new Response(res.body, { status: res.status, headers: h })
 }
 
 const needViewAuth = (req, env) => {
@@ -67,9 +103,28 @@ const needViewAuth = (req, env) => {
 
 /* ---------- 读 ---------- */
 
-async function snapshot (env) {
+async function snapshot (env, req) {
+  /**
+   * 用 lastPush 当 ETag：云端数据只在桌面版推送时变，
+   * 这个时间戳天然就是版本号。手机上重复打开时直接 304，
+   * 省掉整份快照的传输（500 题约 1MB）。
+   *
+   * cache-control 必须是 no-cache 而不是 no-store —— 前者表示
+   * 「可以存但每次都要回来验」，正好触发 If-None-Match；
+   * 后者会让浏览器根本不存，ETag 就失去意义了。
+   */
+  const m = await env.DB.prepare("SELECT v FROM syncmeta WHERE k = 'lastPush'").first()
+  const tag = `W/"${m?.v || '0'}"`
+  const headers = { etag: tag, 'cache-control': 'private, no-cache' }
+
+  if (req.headers.get('if-none-match') === tag) {
+    return new Response(null, { status: 304, headers })
+  }
+
   const [books, chapters, problems, images] = await Promise.all([
-    env.DB.prepare('SELECT * FROM books WHERE deletedAt = 0 ORDER BY seq').all(),
+    // 按 order 排，和桌面版一致 —— 以前这里按 seq（历史题目数）排，
+    // 于是网页版的书籍顺序跟你在桌面版拖出来的顺序对不上
+    env.DB.prepare('SELECT * FROM books WHERE deletedAt = 0 ORDER BY COALESCE("order", 0), seq').all(),
     env.DB.prepare('SELECT * FROM chapters WHERE deletedAt = 0').all(),
     env.DB.prepare('SELECT * FROM problems WHERE deletedAt = 0').all(),
     env.DB.prepare('SELECT * FROM images').all()
@@ -81,7 +136,7 @@ async function snapshot (env) {
     chapters: chapters.results.map(c => ({ ...c, collapsed: !!c.collapsed })),
     problems: problems.results.map(reviveProblem),
     images: images.results
-  })
+  }, 200, headers)
 }
 
 async function stat (env) {
@@ -98,15 +153,23 @@ async function getImage (env, id) {
 
   const h = new Headers()
   h.set('content-type', metadata?.contentType || 'image/webp')
-  // 图片按 id 命名且永不修改，可以放心长缓存
-  h.set('cache-control', 'public, max-age=31536000, immutable')
+  /**
+   * 图片按 id 命名且永不修改，可以放心长缓存。
+   *
+   * 但配了密码时必须是 private：URL 里已经不带 ?key= 了，
+   * 对所有人都长一个样 —— 再让共享缓存（CDN / 代理）存一份，
+   * 等于给未登录的人开了后门。没配密码时数据本来就是公开的，放开走 CDN。
+   */
+  h.set('cache-control', `${env.VIEW_KEY ? 'private' : 'public'}, max-age=31536000, immutable`)
   return new Response(value, { headers: h })
 }
 
 /* ---------- 写 ---------- */
 
 const COLS = {
-  books: ['id', 'name', 'seq', 'createdAt', 'updatedAt', 'deletedAt'],
+  // order 是书籍的排列顺序（桌面版拖出来的），以前漏了没上传，
+  // 导致网页版只能退而按 seq 排，顺序跟桌面版对不上
+  books: ['id', 'name', 'order', 'seq', 'createdAt', 'updatedAt', 'deletedAt'],
   chapters: ['id', 'bookId', 'parentId', 'title', 'order', 'collapsed', 'createdAt', 'updatedAt', 'deletedAt'],
   problems: [
     'id', 'bookId', 'chapterId', 'no', 'title', 'kind', 'difficulty', 'difficultyManual',
@@ -238,7 +301,10 @@ export default {
         // 网页只读版的数据接口 —— 登录墙校验（VIEW_KEY）
         const v = needViewAuth(req, env)
         if (v) return v
-        if (path === '/api/snapshot') return snapshot(env)
+        // 只在 snapshot 上种 cookie：它是进站的第一个请求，
+        // 之后的图片请求就能靠 cookie 过校验，不用再把密码拼进 URL。
+        // 不种在图片响应上 —— 那是长缓存资源，带 Set-Cookie 容易被缓存层留住
+        if (path === '/api/snapshot') return withKeyCookie(await snapshot(env, req), env)
         if (path === '/api/stat') return stat(env)
         if (path.startsWith('/api/img/')) return getImage(env, path.slice(9))
       }

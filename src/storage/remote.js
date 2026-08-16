@@ -64,13 +64,16 @@ export async function loadRemote () {
   return d
 }
 
-/** 云端图片直接用 URL，不下载成 blob —— 浏览器自己会缓存，还能走 CDN。
- *  图片 <img> 没法带头，只能把 key 拼进 URL（Worker 也认 ?key= 参数） */
-export const remoteImgURL = id => {
-  const u = apiURL('/api/img/' + id)
-  const key = getViewKey()
-  return key ? u + '?key=' + encodeURIComponent(key) : u
-}
+/**
+ * 云端图片直接用 URL，不下载成 blob —— 浏览器自己会缓存。
+ *
+ * URL 里**不再带密码**。以前是 `?key=xxx`，因为 <img> 没法带自定义请求头；
+ * 代价是密码会出现在 Cloudflare 访问日志、浏览器历史和 referrer 里。
+ * 现在改由 Worker 在 /api/snapshot 校验通过时种一个 HttpOnly cookie，
+ * 图片请求由浏览器自动带上 —— 所以这个函数必须在 loadRemote() 之后才被调用，
+ * 而它本来就是（图片要等快照回来、渲染出 <img> 才谈得上加载）。
+ */
+export const remoteImgURL = id => apiURL('/api/img/' + id)
 
 export async function remoteStat () {
   try {

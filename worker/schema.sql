@@ -9,11 +9,15 @@
 CREATE TABLE IF NOT EXISTS books (
   id        TEXT PRIMARY KEY,
   name      TEXT NOT NULL,
-  seq       INTEGER DEFAULT 0,
+  "order"   INTEGER DEFAULT 0,   -- 书籍排列顺序，和桌面版一致
+  seq       INTEGER DEFAULT 0,   -- 历史最大题号，用来给新题分配编号
   createdAt INTEGER,
   updatedAt INTEGER,
   deletedAt INTEGER DEFAULT 0
 );
+
+-- 已经建过库的,上面的 CREATE TABLE IF NOT EXISTS 不会给老表加列,
+-- 需要单独跑一次 migrations/001-books-order.sql
 
 CREATE TABLE IF NOT EXISTS chapters (
   id        TEXT PRIMARY KEY,

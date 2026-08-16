@@ -109,6 +109,8 @@ export function migrateBook (b) {
   if (!b.deletedAt) b.deletedAt = 0
   if (!b.updatedAt) b.updatedAt = b.createdAt || Date.now()
   if (!b.seq) b.seq = 0
+  // order 要参与云端排序，缺了会让那本书在网页版跑到最前面
+  if (typeof b.order !== 'number') b.order = 0
   return b
 }
 
