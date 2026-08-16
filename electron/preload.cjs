@@ -50,5 +50,11 @@ contextBridge.exposeInMainWorld('native', {
     haveImages: dir => ipcRenderer.invoke('backup:haveImages', dir),
     writeIncremental: opts => ipcRenderer.invoke('backup:writeIncremental', opts),
     readSnapshot: opts => ipcRenderer.invoke('backup:readSnapshot', opts)
+  },
+
+  print: {
+    /** @param opts {landscape, name, margin} → {ok, file, size} | {ok:false, canceled|error} */
+    toPDF: opts => ipcRenderer.invoke('print:pdf', opts),
+    reveal: file => ipcRenderer.invoke('print:reveal', file)
   }
 })

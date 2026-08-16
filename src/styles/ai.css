@@ -60,8 +60,10 @@
   display:flex;align-items:center;gap:8px;height:28px;padding:0 10px;border-radius:7px;
   background:var(--accent-weak);color:var(--accent);font-size:12.5px;white-space:nowrap;
 }
-.aiprog .bar{width:54px;height:4px;border-radius:2px;background:color-mix(in srgb,var(--accent) 22%,transparent);overflow:hidden}
-.aiprog .bar i{display:block;height:100%;background:var(--accent);transition:width .3s}
+/* 进度槽。不能叫 .bar —— 那是列表/详情工具栏的全局类名，
+   它的 min-height:46px 会压过这里的 height，把细条撑成一个大方块 */
+.aiprog .pbar{width:54px;height:4px;border-radius:2px;background:color-mix(in srgb,var(--accent) 22%,transparent);overflow:hidden}
+.aiprog .pbar i{display:block;height:100%;background:var(--accent);transition:width .3s}
 .aiprog .spin{
   width:11px;height:11px;flex:0 0 11px;border-radius:50%;
   border:2px solid color-mix(in srgb,var(--accent) 28%,transparent);border-top-color:var(--accent);

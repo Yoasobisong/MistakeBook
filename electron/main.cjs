@@ -3,6 +3,7 @@ const path = require('node:path')
 const { registerAI } = require('./ai-proxy.cjs')
 const { registerSecrets } = require('./secrets.cjs')
 const { registerBackup } = require('./backup.cjs')
+const { registerPrint } = require('./print.cjs')
 
 const DEV_URL = process.env.DEV_SERVER_URL
 
@@ -103,6 +104,7 @@ app.whenReady().then(() => {
   registerSecrets(ipcMain, app, safeStorage)
   registerAI(ipcMain)
   registerBackup(ipcMain, app, dialog, BrowserWindow)
+  registerPrint(ipcMain, app, dialog, BrowserWindow)
   buildMenu()
   createWindow()
 

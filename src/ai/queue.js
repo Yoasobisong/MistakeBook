@@ -20,6 +20,9 @@ let failed = 0
 let label = ''
 let cancelled = false
 
+/** 跑完之后让完成态多停一会儿的定时器，见 finish() */
+let holdTimer = null
+
 export const queueState = () => ({
   busy: total > 0, total, done, failed, running, label, cancelled
 })
@@ -27,11 +30,26 @@ export const queueState = () => ({
 const notify = () => emit('ai:progress', queueState())
 
 function reset () {
+  clearTimeout(holdTimer)
+  holdTimer = null
   total = done = failed = 0
   label = ''
   cancelled = false
   inflight.clear()
   notify()
+}
+
+/**
+ * 队列跑空了：先把「N/N」这一帧播出去，停留一下再收起进度条。
+ *
+ * 以前是直接 reset()，而 reset 会先把计数清零再 notify —— 于是
+ * done === total 的那一帧从来没被发出去过，进度条永远停在 N-1/N 就消失，
+ * 进度槽也永远填不满。
+ */
+function finish () {
+  notify()
+  clearTimeout(holdTimer)
+  holdTimer = setTimeout(reset, 900)
 }
 
 /**
@@ -42,6 +60,12 @@ function reset () {
  */
 export function push (jobs, lbl) {
   if (!jobs.length) return Promise.resolve([])
+
+  // 上一批刚跑完、正停在完成态上。这批是全新的，把残留计数清干净再开始，
+  // 否则「提取 3/3」后面紧跟的分析会显示成「分析 3/6」，两轮数字混在一起。
+  // autoPipeline 的提取→分析正好每次都撞上这个窗口。
+  if (holdTimer) reset()
+
   if (total === 0) { done = failed = 0; cancelled = false }
   if (lbl) label = lbl
   total += jobs.length
@@ -72,7 +96,7 @@ function pump () {
         done++
         if (!r || !r.ok) failed++
         res(r)
-        if (!pending.length && !running) reset()
+        if (!pending.length && !running) finish()
         else { notify(); pump() }
       })
   }

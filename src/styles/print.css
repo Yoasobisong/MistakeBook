@@ -42,3 +42,26 @@
 .pr-tex .katex{font-size:1.02em}
 .pr-tex .katex-display{margin:7px 0}
 .pr-sep{font-size:10.5px;color:#777;margin-top:7px}
+
+/* ---------- 做题本：横向 · 一题一页 ----------
+   纸张方向由 print.js 临时注入 @page 控制（@page 没法用类名限定），
+   这里只管版内的排布。 */
+.pr-book .pr-item{
+  break-after:page;page-break-after:always;
+  /* 撑满一页，题干之后剩下的整块留白就是答题区。
+     横向 A4 去掉 12mm 上下边距约 18.6cm，取 16cm 留够余量，
+     写满会把这一题挤到第二页去。 */
+  min-height:16cm;
+  margin-bottom:0;
+}
+/* 最后一题不能再断，否则尾巴上会多出一张空白页 */
+.pr-book .pr-item:last-child{break-after:auto;page-break-after:auto}
+
+/* 字号整体放大一倍：横向一整页只放一道题，还用 11px 排纯属浪费纸。
+   KaTeX 公式用的是 em，会跟着 .pr-tex 一起放大，不用单独调。 */
+.pr-book .pr-ch{font-size:26px;margin:0 0 18px;padding:8px 0 8px 14px;border-left-width:6px}
+.pr-book .pr-item{padding:18px 22px}
+.pr-book .pr-t{font-size:24px;gap:12px;margin-bottom:14px}
+.pr-book .pr-t .d{font-size:13px}
+.pr-book .pr-tex{font-size:23px;line-height:1.9}
+.pr-book .pr-tags{font-size:15px;margin-top:12px}

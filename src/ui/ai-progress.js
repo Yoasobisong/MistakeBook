@@ -16,7 +16,7 @@ function paint (st) {
       <span class="tx">${esc(st.label || '处理')} ${st.done}/${st.total}${
         st.failed ? ` · <b class="bad">${st.failed} 失败</b>` : ''
       }</span>
-      <span class="bar"><i style="width:${pct}%"></i></span>
+      <span class="pbar"><i style="width:${pct}%"></i></span>
       <button class="x" data-aicancel title="取消剩余任务">✕</button>
     </div>`
 }

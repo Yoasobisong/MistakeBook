@@ -2,11 +2,16 @@
 import { $, $$, esc } from '../core/dom.js'
 import { S } from '../core/state.js'
 import { READONLY } from '../core/env.js'
+import { MASTERY } from '../core/consts.js'
 import { PROB } from '../core/selectors.js'
 import { saveProblem } from '../storage/repo.js'
 import { nav, noteStep, renderDetail, renderSide, toggleSlot } from './detail.js'
 import { go, render } from './render.js'
+import { toast } from './toast.js'
 import { clearSel, selectAll, selMode } from './select.js'
+
+/** Z X C → 未掌握 / 半懂 / 已掌握 */
+const MASTERY_KEYS = { z: 0, x: 1, c: 2 }
 
 /* ============================================================
    说明表 —— 设置弹窗的「快捷键」页由它渲染
@@ -44,6 +49,7 @@ const HELP = [
         webT: '展开批注（只读版不能编辑）'
       },
       { k: ['1 – 5'], t: '设难度' },
+      { k: ['Z', 'X', 'C'], t: '设掌握度：未掌握 / 半懂 / 已掌握（左手标记，右手 ←/→ 翻页）' },
       { k: ['S'], t: '加 / 去星标' }
     ]
   },
@@ -158,6 +164,18 @@ export function bindKeys () {
     } else if (e.key === 'e' || e.key === 'E') {
       e.preventDefault()
       noteStep()
+    } else if (/^[zxc]$/i.test(e.key)) {
+      // 三档掌握度。放在左手下、和右手的 ←/→ 分工 ——
+      // 复习就是「翻页 → 判断 → 标记」的循环，双手各管一半才不用来回抬手。
+      // 数字键被难度占了，只能另找三个相邻键
+      e.preventDefault()
+      p.mastery = MASTERY_KEYS[e.key.toLowerCase()]
+      saveProblem(p).then(() => {
+        renderSide()
+        // 掌握度同时是左栏的筛选项
+        render('list', 'filters')
+      })
+      toast('掌握度 · ' + (MASTERY[p.mastery] || MASTERY[0]).t)
     } else if (e.key === 'ArrowLeft') {
       nav(-1)
     } else if (e.key === 'ArrowRight') {
