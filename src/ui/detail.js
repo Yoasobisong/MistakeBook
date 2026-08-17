@@ -12,7 +12,7 @@ import { POLARITIES, POLARITY_LABEL, hydrate, polarityOf, setPolarity } from '..
 import { confirmBox } from './modal.js'
 import { toast } from './toast.js'
 import { go, render } from './render.js'
-import { aiButtonHTML, chatHTML, latexActionsHTML, latexBodyHTML } from './ai-panel.js'
+import { aiButtonHTML, chatHTML, latexActionsHTML, latexBodyHTML, revisePanelHTML } from './ai-panel.js'
 
 const masteryLabel = v => (MASTERY[v | 0] || MASTERY[0]).t
 
@@ -109,6 +109,7 @@ function slotHTML (p, s) {
     ${folded
       ? `<button class="fold" data-opensec="${s.k}">▸ 点开${s.nm}${imgs.length || hasText ? `（${[hasText ? '文字版' : '', imgs.length ? imgs.length + ' 张图' : ''].filter(Boolean).join(' + ')}）` : ''}</button>`
       : `${latexBodyHTML(p, s.k)}
+         ${revisePanelHTML(s.k)}
          ${imgs.length
           ? `<button class="shotfold ${shotsOpen ? 'on' : ''}" data-shotfold="${s.k}">
                ${shotsOpen ? '▾' : '▸'} 原始截图（${imgs.length} 张）

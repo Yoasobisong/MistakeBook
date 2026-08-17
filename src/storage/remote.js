@@ -65,15 +65,19 @@ export async function loadRemote () {
 }
 
 /**
- * 云端图片直接用 URL，不下载成 blob —— 浏览器自己会缓存。
+ * 云端图片直接用 URL，不下载成 blob —— 浏览器自己会缓存，还能走 CDN。
+ * 图片 <img> 没法带自定义请求头，只能把 key 拼进 URL（Worker 也认 ?key= 参数）。
  *
- * URL 里**不再带密码**。以前是 `?key=xxx`，因为 <img> 没法带自定义请求头；
- * 代价是密码会出现在 Cloudflare 访问日志、浏览器历史和 referrer 里。
- * 现在改由 Worker 在 /api/snapshot 校验通过时种一个 HttpOnly cookie，
- * 图片请求由浏览器自动带上 —— 所以这个函数必须在 loadRemote() 之后才被调用，
- * 而它本来就是（图片要等快照回来、渲染出 <img> 才谈得上加载）。
+ * 试过改成 HttpOnly cookie 把密码从 URL 里拿掉（免得它进 Cloudflare 访问日志、
+ * 浏览器历史和 referrer），但在实际部署下图片会全部 401，已回退。
+ * 真要再动这块，更稳的路子是让图片走 apiFetch 拿 blob 再转 Object URL ——
+ * 那样带的是请求头，同域分域都不受影响。
  */
-export const remoteImgURL = id => apiURL('/api/img/' + id)
+export const remoteImgURL = id => {
+  const u = apiURL('/api/img/' + id)
+  const key = getViewKey()
+  return key ? u + '?key=' + encodeURIComponent(key) : u
+}
 
 export async function remoteStat () {
   try {

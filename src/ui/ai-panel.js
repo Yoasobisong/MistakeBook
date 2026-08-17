@@ -14,7 +14,7 @@ import { fmtDT } from '../core/fmt.js'
 import { mdRender } from '../core/md.js'
 import { saveProblem } from '../storage/repo.js'
 import { isConfigured } from '../ai/config.js'
-import { analyzeProblem, chatAbout, extractSlot } from '../ai/tasks.js'
+import { analyzeProblem, chatAbout, extractSlot, reviseSlot } from '../ai/tasks.js'
 import { toast } from './toast.js'
 import { render } from './render.js'
 
@@ -25,10 +25,11 @@ const EMPTY_HINT = '还没有文字版。点右上角「提取文字」，让视
    ============================================================ */
 
 export function latexActionsHTML (p, slotKey, hasImages) {
-  // 网页只读版没有「编辑 / 提取文字」
+  // 网页只读版没有「编辑 / 提取 / 改写」
   if (READONLY) return ''
   const has = !!(p.latex?.[slotKey] || '').trim()
   return `${has ? `<button class="btn sm" data-lxact="edit" data-slot="${slotKey}">编辑文字</button>` : ''}
+    ${has ? `<button class="btn sm" data-lxact="revise" data-slot="${slotKey}" title="用一句话说哪里认错了，让 AI 改">AI 改写</button>` : ''}
     ${hasImages ? `<button class="btn sm" data-lxact="extract" data-slot="${slotKey}">${has ? '重新提取' : '提取文字'}</button>` : ''}`
 }
 
@@ -93,6 +94,119 @@ export function openLatexEditor (slotKey) {
     host.classList.toggle('empty', !p.latex[slotKey].trim())
   })
   ta.addEventListener('keydown', e => { if (e.key === 'Escape') ta.blur() })
+}
+
+/* ============================================================
+   AI 改写：用一句话说哪里认错了，模型给出修正后的完整文本
+   ============================================================ */
+
+/**
+ * 面板状态放模块作用域，而不是塞进 DOM ——
+ * renderDetail() 是整段 innerHTML 重画，写在 DOM 里的状态会被冲掉。
+ *
+ * base 是本轮修改的基准：第一次是库里的原文，点「再说一句」之后
+ * 变成上一轮的结果，这样可以连着改好几处而不用每次都先应用。
+ */
+const revise = { slot: null, base: '', text: '', result: '', error: '', busy: false }
+
+export function revisePanelHTML (slotKey) {
+  if (READONLY || revise.slot !== slotKey) return ''
+  const ready = isConfigured('analyze')
+
+  if (revise.result) {
+    const d = revise.result.length - revise.base.length
+    // 模型被要求输出完整文本，就有顺手重写别处的风险。
+    // 字数变化过大先提醒一句，剩下的靠人眼看预览 —— 这也是不直接落库的理由
+    const big = Math.abs(d) > Math.max(24, revise.base.length * 0.3)
+    return `<div class="rv">
+      <div class="rv-h"><b>改好了，确认一下</b>
+        <span class="rv-n">${revise.base.length} → ${revise.result.length} 字${d ? `（${d > 0 ? '+' : ''}${d}）` : ''}</span></div>
+      ${big ? '<div class="rv-warn">字数变化不小，模型可能动了你没提到的地方 —— 看仔细再应用。</div>' : ''}
+      <div class="rv-out">${mdRender(revise.result, { repairMath: true })}</div>
+      <div class="rv-f">
+        <button class="btn sm primary" data-rvact="apply">应用到题目</button>
+        <button class="btn sm" data-rvact="again">在这基础上再改</button>
+        <div class="spacer"></div>
+        <button class="btn sm ghost" data-rvact="close">放弃</button>
+      </div>
+    </div>`
+  }
+
+  return `<div class="rv">
+    <div class="rv-h"><b>说说哪里不对</b>
+      <span class="rv-n">改「${slotName(slotKey)}」的文字，确认之后才写进题目</span></div>
+    <textarea class="rv-in" id="rvBox" rows="2" ${ready && !revise.busy ? '' : 'disabled'}
+      placeholder="${ready ? '比如：这里不是乘以 n 的 r 次方，而是开 n 次根号　·　Enter 发送' : '先到 设置 → AI 配置分析槽'}">${esc(revise.text)}</textarea>
+    ${revise.error ? `<div class="rv-err">${esc(revise.error)}</div>` : ''}
+    <div class="rv-f">
+      <button class="btn sm primary" data-rvact="send" ${ready && !revise.busy ? '' : 'disabled'}>${revise.busy ? '正在改…' : '让 AI 改'}</button>
+      <div class="spacer"></div>
+      <button class="btn sm ghost" data-rvact="close">取消</button>
+    </div>
+  </div>`
+}
+
+function openRevise (slotKey) {
+  const p = PROB()
+  if (!p) return
+  Object.assign(revise, {
+    slot: slotKey,
+    base: (p.latex?.[slotKey] || '').trim(),
+    text: '', result: '', error: '', busy: false
+  })
+  render('detail')
+  setTimeout(() => $('#rvBox')?.focus(), 40)
+}
+
+function closeRevise () {
+  Object.assign(revise, { slot: null, base: '', text: '', result: '', error: '', busy: false })
+  render('detail')
+}
+
+export async function doRevise () {
+  const p = PROB()
+  if (!p || !revise.slot || revise.busy) return
+
+  // 输入框是每次重画都新建的，发送前先把内容取回来
+  const box = $('#rvBox')
+  if (box) revise.text = box.value
+  if (!revise.text.trim()) return
+
+  revise.busy = true
+  revise.error = ''
+  render('detail')
+
+  const r = await reviseSlot(p, revise.slot, revise.text, revise.base)
+  revise.busy = false
+
+  if (!r.ok) {
+    revise.error = r.error
+    render('detail')
+    return
+  }
+  revise.result = r.text
+  render('detail')
+}
+
+async function applyRevise () {
+  const p = PROB()
+  if (!p || !revise.slot || !revise.result) return
+  const slot = revise.slot
+  p.latex[slot] = revise.result
+  await saveProblem(p)
+  closeRevise()
+  render('list')
+  toast('已应用修改', slotName(slot))
+}
+
+/** 拿上一轮结果当新基准，接着改下一处 */
+function reviseAgain () {
+  revise.base = revise.result
+  revise.result = ''
+  revise.text = ''
+  revise.error = ''
+  render('detail')
+  setTimeout(() => $('#rvBox')?.focus(), 40)
 }
 
 /* ============================================================
@@ -225,8 +339,20 @@ function clearChat () {
 export function handleAIPanelClick (t) {
   const lx = t.closest('[data-lxact]')
   if (lx) {
-    if (lx.dataset.lxact === 'extract') doExtract(lx.dataset.slot)
+    const a = lx.dataset.lxact
+    if (a === 'extract') doExtract(lx.dataset.slot)
+    else if (a === 'revise') openRevise(lx.dataset.slot)
     else openLatexEditor(lx.dataset.slot)
+    return true
+  }
+
+  const rv = t.closest('[data-rvact]')
+  if (rv) {
+    const a = rv.dataset.rvact
+    if (a === 'send') doRevise()
+    else if (a === 'apply') applyRevise()
+    else if (a === 'again') reviseAgain()
+    else closeRevise()
     return true
   }
 

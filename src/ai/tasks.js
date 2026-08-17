@@ -14,7 +14,7 @@ import { saveProblem } from '../storage/repo.js'
 import { chat, chatJSON, stripFence } from './client.js'
 import { isConfigured } from './config.js'
 import { push } from './queue.js'
-import { ANALYZE_SYS, CHAT_SYS, EXTRACT_SYS, analyzeUser, chatContext, extractUser } from './prompts.js'
+import { ANALYZE_SYS, CHAT_SYS, EXTRACT_SYS, REVISE_SYS, analyzeUser, chatContext, extractUser, reviseUser } from './prompts.js'
 
 /* ============================================================
    提取引擎
@@ -144,6 +144,38 @@ export async function analyzeProblem (p, ctx) {
   })
   await saveProblem(p)
   return { ok: true, data: p.ai, added, chapterSet, diffSet }
+}
+
+/* ============================================================
+   按自然语言指令订正转录结果
+   ============================================================ */
+
+/**
+ * 让分析槽的模型按一句说明改正某个槽位的文字。
+ *
+ * **刻意不落库** —— 只把结果返回给调用方。让模型输出完整文本时，
+ * 它可能顺手把没让它改的地方也重写一遍，所以必须先给人看、确认了再写。
+ * 用分析槽而不是提取槽：这一步只吃文本、不看图，纯文本模型又强又便宜。
+ *
+ * @param base 改的基准。省略就用库里的原文；传上一轮的结果即可连续修改
+ */
+export async function reviseSlot (p, slotKey, instruction, base) {
+  if (!isConfigured('analyze')) {
+    return { ok: false, error: '分析槽还没配好模型，去「设置 → AI」配置' }
+  }
+  const before = String(base ?? p.latex?.[slotKey] ?? '').trim()
+  if (!before) return { ok: false, error: `「${slotName(slotKey)}」还没有文字，先提取` }
+  if (!instruction.trim()) return { ok: false, error: '先说说哪里不对' }
+
+  const r = await chat('analyze', [
+    { role: 'system', content: REVISE_SYS },
+    { role: 'user', content: reviseUser(before, instruction) }
+  ], { temperature: 0.1 })
+
+  if (!r.ok) return r
+  const text = stripFence(r.text).trim()
+  if (!text) return { ok: false, error: '模型返回了空内容' }
+  return { ok: true, text, before }
 }
 
 /* ============================================================

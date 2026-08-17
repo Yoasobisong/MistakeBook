@@ -47,53 +47,20 @@ function authed (req, env) {
 
 /**
  * 读接口的密码校验（登录墙，替代 Cloudflare Access —— 免费版开通要绑卡）。
- *
- * 三个来源，按可靠性排序：
- *   1. x-view-key 请求头 —— fetch 调用走这条
- *   2. mbview cookie    —— <img> 没法带自定义头，靠它；由 snapshot 成功时种下
- *   3. ?key= 查询参数    —— **已废弃**，只为兼容还没刷新的旧客户端
- *
- * 第 3 条正是要摆脱的东西：密码出现在 URL 里，会被记进 Cloudflare 访问日志、
- * 浏览器历史和 referrer 头。新客户端不再生成它，但服务端留着不碍事。
- *
+ * 校验来源：x-view-key 请求头，或 URL 上的 ?key= 参数（图片 <img> 没法带头，只能带参）。
  * 密码存在 env.VIEW_KEY，用 `wrangler secret put VIEW_KEY` 设置。
  * 没配 VIEW_KEY 就完全放行（保持旧行为），配了就要求密码一致。
+ *
+ * 注：试过改成 HttpOnly cookie 把密码从 URL 里拿掉，实际部署下图片全部 401，
+ * 已回退。下次要动这块，走 apiFetch 取 blob 更稳（带的是请求头，不依赖 cookie 策略）。
  */
-const COOKIE = 'mbview'
-
-function cookieValue (req, name) {
-  for (const part of (req.headers.get('cookie') || '').split(';')) {
-    const i = part.indexOf('=')
-    if (i > 0 && part.slice(0, i).trim() === name) {
-      return decodeURIComponent(part.slice(i + 1).trim())
-    }
-  }
-  return ''
-}
-
 function viewAuthed (req, env) {
   if (!env.VIEW_KEY) return true
   const head = req.headers.get('x-view-key')
   if (head && head === env.VIEW_KEY) return true
-  if (cookieValue(req, COOKIE) === env.VIEW_KEY) return true
-  const q = new URL(req.url).searchParams.get('key')
+  const url = new URL(req.url)
+  const q = url.searchParams.get('key')
   return !!q && q === env.VIEW_KEY
-}
-
-/**
- * 校验通过后种下 cookie，之后图片请求由浏览器自动带上。
- *
- * SameSite=None 是为了兼容前端与 Worker 分域部署 —— 那种情况下图片
- * 属于跨站请求，Lax 的 cookie 不会被带上。读接口全是幂等 GET、
- * 写接口另有 PUSH_TOKEN 把关，所以不存在 CSRF 面。
- * HttpOnly 让页面脚本读不到它，XSS 也偷不走。
- */
-function withKeyCookie (res, env) {
-  if (!env.VIEW_KEY) return res
-  const h = new Headers(res.headers)
-  h.append('set-cookie',
-    `${COOKIE}=${encodeURIComponent(env.VIEW_KEY)}; Path=/; Max-Age=2592000; HttpOnly; Secure; SameSite=None`)
-  return new Response(res.body, { status: res.status, headers: h })
 }
 
 const needViewAuth = (req, env) => {
@@ -153,14 +120,9 @@ async function getImage (env, id) {
 
   const h = new Headers()
   h.set('content-type', metadata?.contentType || 'image/webp')
-  /**
-   * 图片按 id 命名且永不修改，可以放心长缓存。
-   *
-   * 但配了密码时必须是 private：URL 里已经不带 ?key= 了，
-   * 对所有人都长一个样 —— 再让共享缓存（CDN / 代理）存一份，
-   * 等于给未登录的人开了后门。没配密码时数据本来就是公开的，放开走 CDN。
-   */
-  h.set('cache-control', `${env.VIEW_KEY ? 'private' : 'public'}, max-age=31536000, immutable`)
+  // 图片按 id 命名且永不修改，可以放心长缓存。
+  // URL 里带着 ?key=，缓存键自然把密码算进去，只有知道密码的人才命中得了
+  h.set('cache-control', 'public, max-age=31536000, immutable')
   return new Response(value, { headers: h })
 }
 
@@ -301,10 +263,7 @@ export default {
         // 网页只读版的数据接口 —— 登录墙校验（VIEW_KEY）
         const v = needViewAuth(req, env)
         if (v) return v
-        // 只在 snapshot 上种 cookie：它是进站的第一个请求，
-        // 之后的图片请求就能靠 cookie 过校验，不用再把密码拼进 URL。
-        // 不种在图片响应上 —— 那是长缓存资源，带 Set-Cookie 容易被缓存层留住
-        if (path === '/api/snapshot') return withKeyCookie(await snapshot(env, req), env)
+        if (path === '/api/snapshot') return snapshot(env, req)
         if (path === '/api/stat') return stat(env)
         if (path.startsWith('/api/img/')) return getImage(env, path.slice(9))
       }

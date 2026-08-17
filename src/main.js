@@ -38,7 +38,7 @@ import './ui/ai-progress.js'
 
 import { loadKeys } from './ai/config.js'
 import { applyTheme, cycleTheme, paintThemeBtn } from './ui/theme.js'
-import { handleAIPanelClick, sendChat } from './ui/ai-panel.js'
+import { handleAIPanelClick, doRevise, sendChat } from './ui/ai-panel.js'
 import { tocImportFlow, tocPasteImage } from './ui/toc-import.js'
 import { clearSel, handleSelClick, selClick, selMode, toggleSelMode } from './ui/select.js'
 import { canAutoBackup, scheduleBackup } from './ui/autobackup.js'
@@ -291,6 +291,11 @@ function bindForms () {
     if (e.target.id === 'chatBox' && e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       sendChat()
+    }
+    // AI 改写的说明框同理
+    if (e.target.id === 'rvBox' && e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      doRevise()
     }
   })
 
