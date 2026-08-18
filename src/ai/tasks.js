@@ -11,7 +11,7 @@ import { BOOK, chTree, topicCounts, byCountDesc } from '../core/selectors.js'
 import { uid } from '../core/dom.js'
 import { imageForVision } from '../storage/images.js'
 import { saveProblem } from '../storage/repo.js'
-import { chat, chatJSON, stripFence } from './client.js'
+import { chat, chatJSON, stripBoxes, stripFence } from './client.js'
 import { isConfigured } from './config.js'
 import { push } from './queue.js'
 import { ANALYZE_SYS, CHAT_SYS, EXTRACT_SYS, REVISE_SYS, analyzeUser, chatContext, extractUser, reviseUser } from './prompts.js'
@@ -40,8 +40,18 @@ async function extractWithVision (imageIds, slotKey, ctx, onChunk) {
   ctx?.release?.(id)
 
   if (!r.ok) return r
-  const text = stripFence(r.text)
-  if (!text) return { ok: false, error: '模型返回了空内容' }
+  const raw = stripFence(r.text)
+  const text = stripBoxes(raw)
+  if (!text) {
+    // 剥之前有东西、剥之后什么都不剩 —— 模型整段只输出了定位坐标，
+    // 把转录当成了版面检测。这跟「网络出错返回空」是两回事，得分开说
+    return {
+      ok: false,
+      error: raw
+        ? '模型只返回了定位坐标，没有转录出文字 —— 换一个不带 grounding 的视觉模型试试'
+        : '模型返回了空内容'
+    }
+  }
   return { ok: true, text }
 }
 
@@ -206,12 +216,26 @@ export async function chatAbout (p, text) {
    批量：排进队列
    ============================================================ */
 
-/** 提取一批题目里所有有图的槽位 */
-export function queueExtract (problems, slots = ['q', 'a', 'x']) {
+/**
+ * 提取一批题目里所有有图的槽位。
+ *
+ * @param opts.skipDone 跳过已经有文字的槽位。
+ *
+ * 自动流程必须开着它。extractSlot 是**直接覆盖** p.latex[k]，
+ * 而 autoPipeline 拿到的是整道题、不是刚加的那张图 ——
+ * 补一张答案截图就会把早已校对好的题干重新识别一遍，
+ * 人工改动和 AI 改写的结果一起被冲掉，而且视觉模型对同一张图
+ * 往往错在同一处，等于白改。
+ *
+ * 手动点「重新提取」时不开：那是明确要求重跑。
+ */
+export function queueExtract (problems, slots = ['q', 'a', 'x'], opts) {
+  const skipDone = !!opts?.skipDone
   const jobs = []
   for (const p of problems) {
     for (const k of slots) {
       if (!p.images.some(i => i.slot === k)) continue
+      if (skipDone && (p.latex?.[k] || '').trim()) continue
       jobs.push(ctx => extractSlot(p, k, ctx))
     }
   }
@@ -233,7 +257,8 @@ export async function autoPipeline (problems) {
   const list = [].concat(problems).filter(Boolean)
   if (!list.length) return
 
-  await queueExtract(list)
+  // skipDone 是必须的：这里拿到的是整道题，补一张答案图不该让题干重跑一遍
+  await queueExtract(list, ['q', 'a', 'x'], { skipDone: true })
 
   if (!cfg.autoAnalyze || !isConfigured('analyze')) return
   await queueAnalyze(list.filter(p => p.latex.q || p.latex.a))

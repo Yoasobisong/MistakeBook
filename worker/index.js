@@ -55,6 +55,10 @@ function authed (req, env) {
  * 已回退。下次要动这块，走 apiFetch 取 blob 更稳（带的是请求头，不依赖 cookie 策略）。
  */
 function viewAuthed (req, env) {
+  // 桌面版手里只有 PUSH_TOKEN，没有 VIEW_KEY。而 PUSH_TOKEN 是权限更高的
+  // 凭证（能写），读接口自然该一并放行 —— 否则配上登录墙之后，
+  // 桌面版的「测试连接」会永远 401
+  if (authed(req, env)) return true
   if (!env.VIEW_KEY) return true
   const head = req.headers.get('x-view-key')
   if (head && head === env.VIEW_KEY) return true

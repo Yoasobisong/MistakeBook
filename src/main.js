@@ -7,7 +7,7 @@
 import './styles/index.css'
 
 import { $, $$, debounce } from './core/dom.js'
-import { S, emptyFilters, openSecs, openShots } from './core/state.js'
+import { S, emptyFilters, openMore, openSecs } from './core/state.js'
 import { BOOK, PROB, chName, findProblem } from './core/selectors.js'
 import { READONLY } from './core/env.js'
 import { openDB } from './storage/db.js'
@@ -182,10 +182,10 @@ function bindClicks () {
     const os = hit('[data-opensec]')
     if (os) { openSecs.add(os.dataset.opensec); renderDetail(); return }
 
-    const sf = hit('[data-shotfold]')
+    const sf = hit('[data-more]')
     if (sf) {
-      const k = sf.dataset.shotfold
-      openShots.has(k) ? openShots.delete(k) : openShots.add(k)
+      const k = sf.dataset.more
+      openMore.has(k) ? openMore.delete(k) : openMore.add(k)
       renderDetail()
       return
     }

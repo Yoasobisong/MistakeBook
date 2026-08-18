@@ -23,6 +23,16 @@ export const SLOTS = [
 export const SLOT_KEYS = SLOTS.map(s => s.k)
 export const slotName = k => (SLOTS.find(s => s.k === k) || { nm: k }).nm
 
+/**
+ * 这个槽位里，文字版是不是主角？
+ *
+ * 题目是 —— 题干是拿来读的，文字排版比位图灵活，还要喂给做题本导出。
+ * 答案和补充不是 —— 那两处看的就是原图，文字版折到下面去。
+ * 答案往往很长，视觉模型在长文本上翻车的概率明显更高，
+ * 而那份文字的实际用途只是给 AI 分析考点，不值得占最显眼的位置。
+ */
+export const textFirst = k => k === 'q'
+
 /** 批注编辑器的快捷片段 */
 export const NOTE_SNIPS = [
   { t: '错因分析', v: '### 错因分析\n' },

@@ -145,11 +145,29 @@ async function bulkDelete (list) {
 
 async function bulkExtract (list) {
   if (!isConfigured('extract')) { toast('提取槽还没配模型', '设置 → AI'); return }
-  const targets = list.filter(p => p.images.length)
-  if (!targets.length) { toast('选中的题都没有截图'); return }
 
-  toast('已排入队列', targets.length + ' 题')
-  await queueExtract(targets)
+  // 按槽位算而不是按题：一道题可能题干已提取、答案刚补了截图还没提取
+  const SLOTS = ['q', 'a', 'x']
+  let todo = 0
+  let skip = 0
+  for (const p of list) {
+    for (const k of SLOTS) {
+      if (!p.images.some(i => i.slot === k)) continue
+      if ((p.latex?.[k] || '').trim()) skip++
+      else todo++
+    }
+  }
+
+  if (!todo) {
+    skip
+      ? toast('选中的都已经提取过了', '想重做的话进题目点「重新提取」')
+      : toast('选中的题都没有截图')
+    return
+  }
+
+  // 已有文字的一律跳过 —— 重新提取会覆盖掉人工改动，那得由你显式发起
+  toast('已排入队列', `${todo} 处${skip ? ` · 跳过 ${skip} 处已提取的` : ''}`)
+  await queueExtract(list, SLOTS, { skipDone: true })
   renderAll()
   toast('批量提取结束')
 }

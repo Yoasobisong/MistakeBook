@@ -72,8 +72,13 @@ export const S = {
  */
 export const openSecs = new Set()
 
-/** 截图折叠区的展开状态，键是槽位 key。同样只存内存 */
-export const openShots = new Set()
+/**
+ * 槽位里「次要那一半」的展开状态，键是槽位 key。同样只存内存。
+ *
+ * 哪一半算次要按槽位而定，见 consts.js 的 textFirst()：
+ * 题目槽次要的是原始截图，答案和补充槽次要的是文字版。
+ */
+export const openMore = new Set()
 
 /**
  * 与 AI 的对话记录，键是题目 id。

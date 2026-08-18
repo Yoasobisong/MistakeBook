@@ -177,6 +177,37 @@ export function stripFence (text) {
   return nl < 0 ? t : t.slice(nl + 1).replace(/```\s*$/, '').trim()
 }
 
+/* ---------- 视觉模型的定位坐标 ---------- */
+
+/**
+ * 剥掉视觉模型吐出来的包围盒坐标。
+ *
+ * Qwen-VL / InternVL / MiniCPM-V 这类模型带 grounding 能力，转录时经常
+ * 顺手把文字块在图上的位置也报出来 —— 正文前面多出一行 (1,0),(249,35)
+ * （归一化到 0-1000 的左上角、右下角）。严重时整段输出退化成只有坐标、
+ * 一个字都没有：模型把任务当成了版面检测。
+ *
+ * 提示词里禁止过一遍，但这是模型的训练格式，光靠提示词按不住，所以出库前再剥一道。
+ *
+ * 剥的两种形态：
+ *   `<box>`/`<|box_start|>` 包着的 —— 连内容一起删，标签本身就是铁证；
+ *   行首裸露的坐标串 —— 只在**行首**且**连着两个以上**时才算，
+ *     单个 (1,0) 更可能是题目里真正的坐标点。
+ * `<ref>` 裹的是正文，只删标签、留内容。
+ */
+const BOX_WRAPPED_RE = /<\|?box(?:_start)?\|?>[\s\S]*?<\/?\|?box(?:_end)?\|?>/g
+const BOX_TAG_RE = /<\/?\|?(?:box|ref|quad|point)(?:_start|_end)?\|?>/g
+const BOX_LINE_RE = /^[ \t]*(?:\(\s*-?\d+(?:\.\d+)?\s*,\s*-?\d+(?:\.\d+)?\s*\)[ \t]*,?[ \t]*){2,}/gm
+
+export function stripBoxes (text) {
+  return String(text || '')
+    .replace(BOX_WRAPPED_RE, '')
+    .replace(BOX_TAG_RE, '')
+    .replace(BOX_LINE_RE, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
 /* ---------- JSON 容错解析 ---------- */
 
 /** 从位置 i 开始扫一段配对的括号，正确跳过字符串里的括号与转义 */

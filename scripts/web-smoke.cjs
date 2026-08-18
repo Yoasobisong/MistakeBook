@@ -133,8 +133,8 @@ const CHECKS = `
   out.sideWriteLeft = Array.from(document.querySelectorAll(sideWriteSel)).map(el => el.outerHTML.slice(0, 80))
   out.sideShowsReasons = document.querySelectorAll('#detSide .tagbox .t').length
   out.shotToolbarGone = !document.querySelector('.shot-t')
-  // 有文字版时截图默认折叠,点开折叠按钮再看图片
-  const shotfold = document.querySelector('[data-shotfold]')
+  // 槽位的次要那一半默认折着（题目槽是截图，答案槽是文字版），点开再看
+  const shotfold = document.querySelector('[data-more]')
   out.shotFoldBtn = !!shotfold
   if (shotfold) { shotfold.click(); await new Promise(r => setTimeout(r, 600)) }
   out.shotImgSrc = ($('#detMain img[data-img]')?.getAttribute('src') || '').slice(0, 60)

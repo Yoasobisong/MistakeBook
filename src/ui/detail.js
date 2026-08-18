@@ -2,9 +2,9 @@
 import { $, esc } from '../core/dom.js'
 import { on } from '../core/bus.js'
 import { ago, fmtD, pad } from '../core/fmt.js'
-import { S, openSecs, openShots } from '../core/state.js'
+import { S, openMore, openSecs } from '../core/state.js'
 import { READONLY } from '../core/env.js'
-import { DIFF_LABEL, MASTERY, NOTE_SNIPS, REASONS, SLOTS, slotName } from '../core/consts.js'
+import { DIFF_LABEL, MASTERY, NOTE_SNIPS, REASONS, SLOTS, slotName, textFirst } from '../core/consts.js'
 import { PROB, byCountDesc, chName, chTree, filtered, findProblem, topicCounts } from '../core/selectors.js'
 import { mdRender } from '../core/md.js'
 import { deleteImage, saveProblem } from '../storage/repo.js'
@@ -24,6 +24,8 @@ export function openProblem (id) {
   S.problemId = id
   // 每次进题都收起答案、补充和批注 —— 想重做时不该被剧透
   openSecs.clear()
+  // 次要区也一并复位，否则在上一题点开的答案文字版会跟着带到下一题
+  openMore.clear()
   // 有题干没解析时，默认把粘贴目标对准「答案解析」槽
   S.armedSlot = (p.images.some(i => i.slot === 'q') && !p.images.some(i => i.slot === 'a')) ? 'a' : 'q'
   go('detail')
@@ -42,8 +44,8 @@ export function nav (d) {
 /**
  * 展开 / 收起某个槽位（答案、补充）。
  *
- * 文字和截图一起开、一起关 —— 按快捷键是想「看答案」这一件事，
- * 展开后还要再点一次「原始截图」才看得全，等于把一个动作拆成两个。
+ * 展开后先看到的是原始截图 —— 按这个键是想「看答案」，
+ * 而答案要看的就是原图。文字版留在下面折着，需要时再点开。
  */
 export function toggleSlot (k) {
   const p = PROB()
@@ -54,10 +56,10 @@ export function toggleSlot (k) {
 
   if (openSecs.has(k)) {
     openSecs.delete(k)
-    openShots.delete(k)
+    // 收起时把次要区一起复位，下次展开还是干净的默认样子
+    openMore.delete(k)
   } else {
     openSecs.add(k)
-    openShots.add(k)
   }
   renderDetail()
 }
@@ -82,9 +84,11 @@ function shotsHTML (p, s, imgs) {
 }
 
 /**
- * 文字版是主体，截图退居可折叠区。
- * 截图是固定比例的位图，排版上远不如文字灵活；
- * 但没提取出文字之前截图仍然默认展开，否则这一区就是空的。
+ * 一个槽位分两半：文字版与原始截图，一半摊开、另一半折起来。
+ * 谁摊开由 textFirst() 决定 —— 题目看文字，答案和补充看原图。
+ *
+ * 折起来的那一半只在摊开的那一半确实有内容时才折得动，
+ * 否则这一区打开就是空的。
  */
 function slotHTML (p, s) {
   const imgs = p.images.filter(i => i.slot === s.k)
@@ -93,8 +97,27 @@ function slotHTML (p, s) {
 
   // 题干永远展开；答案、补充默认折叠，避免重做时被剧透
   const folded = s.k !== 'q' && S.settings.foldAnswer && !openSecs.has(s.k)
-  const shotKey = s.k
-  const shotsOpen = !hasText || openShots.has(shotKey)
+  const tf = textFirst(s.k)
+  const moreOpen = openMore.has(s.k) || (tf ? !hasText : !imgs.length)
+
+  const moreFold = label => `<button class="shotfold ${moreOpen ? 'on' : ''}" data-more="${s.k}">
+      ${moreOpen ? '▾' : '▸'} ${label}
+    </button>`
+
+  const textPart = latexBodyHTML(p, s.k) + revisePanelHTML(s.k)
+  const shotPart = imgs.length
+    ? shotsHTML(p, s, imgs)
+    : READONLY
+      ? '<div class="no-shot">没有截图</div>'
+      : `<div class="drop-z" data-pick="${s.k}">粘贴 / 拖入 / 点击选择截图</div>`
+
+  const body = tf
+    ? textPart + (imgs.length
+        ? moreFold(`原始截图（${imgs.length} 张）`) + (moreOpen ? shotPart : '')
+        : shotPart)
+    // 文字版哪怕还是空的也留着这一行：它是「提取文字 / 编辑 / AI 改写」写入的落点
+    : shotPart + moreFold(hasText ? `文字版（${p.latex[s.k].length} 字）· 供 AI 分析考点` : '文字版（还没提取）') +
+        (moreOpen ? textPart : '')
 
   return `<section class="slot ${S.armedSlot === s.k ? 'armed' : ''}" data-slot="${s.k}">
     <div class="slot-h">
@@ -107,17 +130,8 @@ function slotHTML (p, s) {
     </div>
 
     ${folded
-      ? `<button class="fold" data-opensec="${s.k}">▸ 点开${s.nm}${imgs.length || hasText ? `（${[hasText ? '文字版' : '', imgs.length ? imgs.length + ' 张图' : ''].filter(Boolean).join(' + ')}）` : ''}</button>`
-      : `${latexBodyHTML(p, s.k)}
-         ${revisePanelHTML(s.k)}
-         ${imgs.length
-          ? `<button class="shotfold ${shotsOpen ? 'on' : ''}" data-shotfold="${s.k}">
-               ${shotsOpen ? '▾' : '▸'} 原始截图（${imgs.length} 张）
-             </button>
-             ${shotsOpen ? shotsHTML(p, s, imgs) : ''}`
-          : READONLY
-            ? '<div class="no-shot">没有截图</div>'
-            : `<div class="drop-z" data-pick="${s.k}">粘贴 / 拖入 / 点击选择截图</div>`}`}
+      ? `<button class="fold" data-opensec="${s.k}">▸ 点开${s.nm}${imgs.length || hasText ? `（${[imgs.length ? imgs.length + ' 张图' : '', hasText ? '文字版' : ''].filter(Boolean).join(' + ')}）` : ''}</button>`
+      : body}
   </section>`
 }
 

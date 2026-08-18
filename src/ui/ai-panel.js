@@ -6,9 +6,9 @@
  * 章节只在空着时才填（手动归过类的不被模型改掉）。
  */
 import { $, esc } from '../core/dom.js'
-import { S, chatLog } from '../core/state.js'
+import { S, chatLog, openMore } from '../core/state.js'
 import { READONLY } from '../core/env.js'
-import { slotName } from '../core/consts.js'
+import { slotName, textFirst } from '../core/consts.js'
 import { PROB, chName } from '../core/selectors.js'
 import { fmtDT } from '../core/fmt.js'
 import { mdRender } from '../core/md.js'
@@ -19,6 +19,20 @@ import { toast } from './toast.js'
 import { render } from './render.js'
 
 const EMPTY_HINT = '还没有文字版。点右上角「提取文字」，让视觉模型把截图转成 LaTeX。'
+
+/**
+ * 答案和补充的文字版默认是折起来的，动它之前先摊开。
+ *
+ * 下面三个入口都要往 [data-lxbody] 里写东西 —— 提取要往里流式输出、
+ * 编辑要把它换成 textarea、改写要在它下面挂面板。折着的时候这个节点
+ * 根本不存在，不先展开就是静悄悄什么都不发生。
+ * 题目槽的文字本来就在最上面，不用管。
+ */
+function openText (slotKey) {
+  if (textFirst(slotKey) || openMore.has(slotKey)) return
+  openMore.add(slotKey)
+  render('detail')
+}
 
 /* ============================================================
    槽位正文
@@ -48,6 +62,7 @@ export async function doExtract (slotKey) {
   if (!p) return
   if (!isConfigured('extract')) { toast('提取槽还没配模型', '设置 → AI'); return }
 
+  openText(slotKey)
   const body = document.querySelector(`[data-lxbody="${slotKey}"]`)
   if (body) { body.classList.add('streaming'); body.textContent = '正在识别…' }
 
@@ -75,8 +90,10 @@ export async function doExtract (slotKey) {
 
 export function openLatexEditor (slotKey) {
   const p = PROB()
+  if (!p) return
+  openText(slotKey)
   const host = document.querySelector(`[data-lxbody="${slotKey}"]`)
-  if (!p || !host) return
+  if (!host) return
 
   host.classList.remove('streaming')
   host.innerHTML = `<textarea class="lx-edit" data-lxedit="${slotKey}"
@@ -149,6 +166,7 @@ export function revisePanelHTML (slotKey) {
 function openRevise (slotKey) {
   const p = PROB()
   if (!p) return
+  openText(slotKey)
   Object.assign(revise, {
     slot: slotKey,
     base: (p.latex?.[slotKey] || '').trim(),

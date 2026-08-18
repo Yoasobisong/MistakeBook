@@ -183,8 +183,19 @@ export async function testCloud (override) {
   const c = { ...cfg(), ...(override || {}) }
   if (!c.apiBase) return { ok: false, error: '还没填 API 地址' }
   try {
-    const r = await fetch(c.apiBase.replace(/\/+$/, '') + '/api/stat')
-    if (!r.ok) return { ok: false, error: `HTTP ${r.status}` }
+    // 必须带上令牌：/api/stat 是读接口，配了 VIEW_KEY 登录墙之后会拦。
+    // 桌面版没有 VIEW_KEY，靠 worker 那边「PUSH_TOKEN 也放行读接口」的规则过
+    const r = await fetch(c.apiBase.replace(/\/+$/, '') + '/api/stat', {
+      headers: c.token ? { 'x-push-token': c.token } : {}
+    })
+    if (!r.ok) {
+      return {
+        ok: false,
+        error: r.status === 401
+          ? '令牌不对（401）—— 检查推送令牌和 Worker 的 PUSH_TOKEN 是否一致'
+          : `HTTP ${r.status}`
+      }
+    }
     const d = await r.json()
     return { ok: true, text: `云端有 ${d.problems} 题 · ${d.images} 张图 · ${bytes(d.bytes || 0)}` }
   } catch (e) {
