@@ -30,7 +30,11 @@ export const PRESETS = [
   { t: 'DeepSeek', baseURL: 'https://api.deepseek.com/v1', apiKey: '', model: 'deepseek-chat' },
   { t: '硅基流动', baseURL: 'https://api.siliconflow.cn/v1', apiKey: '', model: '' },
   { t: '智谱 GLM', baseURL: 'https://open.bigmodel.cn/api/paas/v4', apiKey: '', model: 'glm-4-flash' },
-  { t: 'OpenRouter', baseURL: 'https://openrouter.ai/api/v1', apiKey: '', model: '' }
+  { t: 'OpenRouter', baseURL: 'https://openrouter.ai/api/v1', apiKey: '', model: '' },
+  // OpenCode Go / Zen：订阅 key 见 https://opencode.ai/auth
+  // 仅 chat/completions 模型可用（GLM/Kimi/DeepSeek/MiMo/Hy3 等）；Grok/GPT 走 /responses，MiniMax/Qwen 走 /messages，当前客户端不支持
+  { t: 'OpenCode Go', baseURL: 'https://opencode.ai/zen/go/v1', apiKey: '', model: 'deepseek-v4-flash' },
+  { t: 'OpenCode Zen', baseURL: 'https://opencode.ai/zen/v1', apiKey: '', model: 'deepseek-v4-flash' }
 ]
 
 export const slotCfg = slot => S.settings.ai[slot]
